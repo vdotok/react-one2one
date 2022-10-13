@@ -636,33 +636,18 @@ class Client extends events_1.EventEmitter {
             return console.error("Peer connection not found!");
         }
     }
-    async AcceptCall(localVideo, remoteVideo, sessionID) {
+    async AcceptCall(params) {
         return new Promise(async (resolve, rejects) => {
-            this.localVideo = localVideo;
+            this.localVideo = params.localVideo;
             let from = this.currentFromUser;
-            //let mediaType=this.UUIDSessionMediaTypes[from];
-            let mediaType = this.mediaType;
-            var constraints = {
-                audio: true,
-                video: mediaType != "audio"
-            };
-            let uUID = sessionID;
-            this.videoStatus[uUID] = (constraints.video ? 1 : 0);
+            let uUID = params.uUID = params.sessionUUID;
+            this.videoStatus[uUID] = (params.video ? 1 : 0);
             this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
-            this.audioStatus[uUID] = (constraints.audio ? 1 : 0);
+            this.audioStatus[uUID] = (params.audio ? 1 : 0);
             this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
-            /*var options = {
-                mediaConstraints: constraints,
-                localVideo : localVideo,
-                remoteVideo : remoteVideo,
-                onicecandidate : (candidate: any)=>{
-                    this.onIceCandidate(candidate,from)
-                },
-                onerror : this.onError
-            }*/
             let options = {};
             try {
-                options = await this.createOptions({ video: mediaType != "audio", audio: 1, localVideo: localVideo, remoteVideo: remoteVideo, uUID: sessionID, sessionUUID: sessionID });
+                options = await this.createOptions(params);
                 if (options && !options.status) {
                     throw options.message;
                 }
@@ -673,18 +658,18 @@ class Client extends events_1.EventEmitter {
             if (options.localVideo) {
                 this.localVideos[uUID] = options.localVideo;
             }
-            if (sessionID) {
-                this.webRtcPeers[sessionID] = new vidWebRTC.WebRtcPeer.WebRtcPeerSendrecv(options, (error) => {
+            if (uUID) {
+                this.webRtcPeers[uUID] = new vidWebRTC.WebRtcPeer.WebRtcPeerSendrecv(options, (error) => {
                     if (error) {
                         return console.error(error);
                     }
-                    this.webRtcPeers[sessionID].generateOffer((error, offerSdp) => {
+                    this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
                         this.onOfferIncomingCall(error, offerSdp, from);
                     });
                 });
             }
             else {
-                EventHandler_1.default.sdkError({ sessionUUID: sessionID, message: "Please provide session id you want to join!" }, this);
+                EventHandler_1.default.sdkError({ sessionUUID: uUID, message: "Please provide session id of call you want to join!" }, this);
             }
         });
     }
@@ -7990,6 +7975,7 @@ class SingleStreamHelper {
             ctx.fill(); // fill it with the pattern.
         }, 1000);
         const stream = canvas.captureStream(30);
+        stream.getVideoTracks()[0].enabled = false;
         return stream.getVideoTracks()[0];
     }
     blackSilence(...args) {
