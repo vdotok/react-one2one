@@ -636,45 +636,57 @@ class Client extends events_1.EventEmitter {
             return console.error("Peer connection not found!");
         }
     }
-    AcceptCall(localVideo, remoteVideo, sessionID) {
-        this.localVideo = localVideo;
-        let from = this.currentFromUser;
-        //let mediaType=this.UUIDSessionMediaTypes[from];
-        let mediaType = this.mediaType;
-        var constraints = {
-            audio: true,
-            video: mediaType != "audio"
-        };
-        let uUID = sessionID;
-        this.videoStatus[uUID] = (constraints.video ? 1 : 0);
-        this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
-        this.audioStatus[uUID] = (constraints.audio ? 1 : 0);
-        this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
-        var options = {
-            mediaConstraints: constraints,
-            localVideo: localVideo,
-            remoteVideo: remoteVideo,
-            onicecandidate: (candidate) => {
-                this.onIceCandidate(candidate, from);
-            },
-            onerror: this.onError
-        };
-        if (options.localVideo) {
-            this.localVideos[uUID] = options.localVideo;
-        }
-        if (sessionID) {
-            this.webRtcPeers[sessionID] = new vidWebRTC.WebRtcPeer.WebRtcPeerSendrecv(options, (error) => {
-                if (error) {
-                    return console.error(error);
+    async AcceptCall(localVideo, remoteVideo, sessionID) {
+        return new Promise(async (resolve, rejects) => {
+            this.localVideo = localVideo;
+            let from = this.currentFromUser;
+            //let mediaType=this.UUIDSessionMediaTypes[from];
+            let mediaType = this.mediaType;
+            var constraints = {
+                audio: true,
+                video: mediaType != "audio"
+            };
+            let uUID = sessionID;
+            this.videoStatus[uUID] = (constraints.video ? 1 : 0);
+            this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
+            this.audioStatus[uUID] = (constraints.audio ? 1 : 0);
+            this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
+            /*var options = {
+                mediaConstraints: constraints,
+                localVideo : localVideo,
+                remoteVideo : remoteVideo,
+                onicecandidate : (candidate: any)=>{
+                    this.onIceCandidate(candidate,from)
+                },
+                onerror : this.onError
+            }*/
+            let options = {};
+            try {
+                options = await this.createOptions({ video: mediaType != "audio", audio: 1, localVideo: localVideo, remoteVideo: remoteVideo, uUID: sessionID, sessionUUID: sessionID });
+                if (options && !options.status) {
+                    throw options.message;
                 }
-                this.webRtcPeers[sessionID].generateOffer((error, offerSdp) => {
-                    this.onOfferIncomingCall(error, offerSdp, from);
+            }
+            catch (e) {
+                return rejects({ status: false, error: e });
+            }
+            if (options.localVideo) {
+                this.localVideos[uUID] = options.localVideo;
+            }
+            if (sessionID) {
+                this.webRtcPeers[sessionID] = new vidWebRTC.WebRtcPeer.WebRtcPeerSendrecv(options, (error) => {
+                    if (error) {
+                        return console.error(error);
+                    }
+                    this.webRtcPeers[sessionID].generateOffer((error, offerSdp) => {
+                        this.onOfferIncomingCall(error, offerSdp, from);
+                    });
                 });
-            });
-        }
-        else {
-            EventHandler_1.default.sdkError({ sessionUUID: sessionID, message: "Please provide session id you want to join!" }, this);
-        }
+            }
+            else {
+                EventHandler_1.default.sdkError({ sessionUUID: sessionID, message: "Please provide session id you want to join!" }, this);
+            }
+        });
     }
     RejectCall(from = null, disposeWebRTC = true) {
         if (!from) {
@@ -1533,7 +1545,12 @@ class Client extends events_1.EventEmitter {
         //hv_info --> Host to All viewers Communication
         request.type = 'request';
         request.requestID = new Date().getTime().toString();
-        request.sessionUUID = uUID ? uUID : this.UUIDSessions[this.currentUser];
+        if (uUID === -1) {
+            delete request.sessionUUID;
+        }
+        else {
+            request.sessionUUID = uUID ? uUID : this.UUIDSessions[this.currentUser];
+        }
         request.mcToken = this.McToken;
         request.referenceID = this.currentUser;
         request.data = data;
@@ -1607,19 +1624,21 @@ class Client extends events_1.EventEmitter {
     sendPing() {
         try {
             let pingCount = 0;
-            for (var uUID in this.webRtcPeers) {
-                if (this.pingSessionStopped[uUID]) {
+            /*for (var uUID in this.webRtcPeers) {
+                if(this.pingSessionStopped[uUID])
+                {
                     console.log("SDK not sending Ping session already stopped from server with 400 pong for: ", uUID);
                 }
-                else {
+                else
+                {
                     pingCount++;
-                    this.sendStateRPC({}, uUID, 0, 'session_ping');
+                    this.sendStateRPC({}, uUID, 0, 'session_ping')
                     console.log("SDK Ping sent for: ", uUID);
                 }
-            }
-            if (!pingCount) {
+            }*/
+            if (!pingCount || true) {
                 this.sendStateRPC({}, -1, 0, 'ping');
-                console.log("SDK Ping sent but no call session exists!");
+                console.log("SDK Ping sent!");
             }
         }
         catch (e) {
@@ -18241,7 +18260,12 @@ class Broadcast extends events_1.EventEmitter {
         //hv_info --> Host to All viewers Communication
         request.type = 'request';
         request.requestID = new Date().getTime().toString();
-        request.sessionUUID = uUID ? uUID : this.UUIDSessions[this.currentUser];
+        if (uUID === -1) {
+            delete request.sessionUUID;
+        }
+        else {
+            request.sessionUUID = uUID ? uUID : this.UUIDSessions[this.currentUser];
+        }
         request.mcToken = this.McToken;
         request.referenceID = this.currentUser;
         request.data = data;
@@ -18312,19 +18336,21 @@ class Broadcast extends events_1.EventEmitter {
     sendPing() {
         try {
             let pingCount = 0;
-            for (var uUID in this.broadCastSession) {
-                if (this.pingSessionStopped[uUID]) {
+            /*for (var uUID in this.broadCastSession) {
+                if(this.pingSessionStopped[uUID])
+                {
                     console.log("SDK not sending Ping session already stopped from server with 400 pong for: ", uUID);
                 }
-                else {
+                else
+                {
                     pingCount++;
-                    this.sendStateRPC({}, uUID, 0, 'session_ping');
+                    this.sendStateRPC({}, uUID, 0, 'session_ping')
                     console.log("SDK Ping sent for: ", uUID);
                 }
-            }
-            if (!pingCount) {
+            }*/
+            if (!pingCount || true) {
                 this.sendStateRPC({}, -1, 0, 'ping');
-                console.log("SDK Ping sent but no call session exists!");
+                console.log("SDK Ping sent!");
             }
         }
         catch (e) {
