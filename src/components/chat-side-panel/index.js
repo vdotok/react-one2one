@@ -62,9 +62,10 @@ function ChatSidePanel() {
   };
 
   const renderUI = useMemo(() => {
+    console.log("renderUI",{usersList})
     if (loading) {
       return <h1>Loading</h1>;
-    } else if (usersList.length) {
+    } else if (usersList?.length) {
       return <UsersListContainer value={value} users={usersList} />;
     }
     return <EmptyUserContainer />;
@@ -74,7 +75,7 @@ function ChatSidePanel() {
     <>
       <ChatSearchContainer>
         <h4 className="chat_text">Chats</h4>
-        {usersList.length ? (
+        {usersList?.length ? (
           <SearchInput
             iconName="search"
             inputProps={{

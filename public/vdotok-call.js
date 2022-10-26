@@ -661,15 +661,16 @@ class Client extends events_1.EventEmitter {
             if (uUID) {
                 this.webRtcPeers[uUID] = new vidWebRTC.WebRtcPeer.WebRtcPeerSendrecv(options, (error) => {
                     if (error) {
-                        return console.error(error);
+                        rejects(error);
                     }
                     this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                        this.onOfferIncomingCall(error, offerSdp, from);
+                        this.onOfferIncomingCall(error, offerSdp, from, uUID);
+                        resolve(uUID);
                     });
                 });
             }
             else {
-                EventHandler_1.default.sdkError({ sessionUUID: uUID, message: "Please provide session id of call you want to join!" }, this);
+                rejects("Please provide session id of call you want to join!");
             }
         });
     }
@@ -708,7 +709,7 @@ class Client extends events_1.EventEmitter {
         };
         this.SendPacket(response);
     }
-    onOfferIncomingCall(error, offerSdp, from) {
+    onOfferIncomingCall(error, offerSdp, from, uUID = null) {
         if (error) {
             EventHandler_1.default.OnOfferIncomingCall(error, this);
             return console.error("Error generating the offer");
@@ -719,17 +720,21 @@ class Client extends events_1.EventEmitter {
         // 	callResponse : 'accept',
         // 	sdpOffer : offerSdp
         // };
+        if (!uUID) {
+            uUID = this.UUIDSessions[from];
+        }
         let response = {
             "type": "request",
             "requestType": "session_invite",
             "sdpOffer": offerSdp,
             "requestID": new Date().getTime().toString(),
-            "sessionUUID": this.UUIDSessions[from],
+            "sessionUUID": uUID,
             "responseCode": 200,
             "responseMessage": "accepted"
         };
         console.log("===OnOffering Answer", response);
         this.SendPacket(response);
+        this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, {});
     }
     /*************
      * Register user to SDK

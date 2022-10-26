@@ -1,5 +1,4 @@
 import React, { useContext, useEffect, useMemo } from "react";
-import styled from "styled-components";
 import Video from "assets/background_video.mp4";
 import CallFooter from "../call-footer";
 import { VdotokClientContext } from "context/vdotok-client";
@@ -8,107 +7,7 @@ import { CallContext } from "context/call";
 import GetIcon from "utils/getIcon";
 import ImageStatus from "components/image-status";
 import { useLocalStorage } from "hooks/useLocalStorage";
-
-const Container = styled.div`
-  height: 100vh;
-  width: 100%;
-  /* background-color: pink; */
-  padding: 40px 20px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  .inner_container {
-    position: relative;
-    flex: 1;
-    /* background-color: brown; */
-    .local_video_container {
-      position: absolute;
-      bottom: 10px;
-      right: 10px;
-      width: 234px;
-      height: 132px;
-      overflow: hidden;
-      border-radius: 10px;
-      background-color: ${({ theme }) => theme.gray_200_color};
-      .local_video {
-        display: ${(props) => (props.camera ? "block" : "none")};
-        /* background-color: gold; */
-      }
-    }
-    .remote_video_container {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      .remote_video {
-        display: ${(props) => (props.videoStream ? "block" : "none")};
-        /* background-color: gold; */
-      }
-    }
-    .video {
-      width: calc(100% + 2px);
-      height: calc(100% + 2px);
-      object-fit: contain;
-      display: none;
-      /* background-color: pink; */
-      /* border-radius: 10px; */
-    }
-    .icon_container {
-      position: absolute;
-      top: 10px;
-      right: 10px;
-      height: 26px;
-      width: 26px;
-      border-radius: 100%;
-      background-color: ${({ theme }) => theme.image_bg};
-      text-align: center;
-      .mic_off_icon {
-        vertical-align: middle;
-        font-size: 16px;
-        color: #7269ef;
-      }
-    }
-    .no_video_container {
-      /* background-color: gold; */
-      height: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      .img_container {
-        height: 140px;
-        width: 140px;
-        &.local_img_container {
-          height: 80px;
-          width: 80px;
-          .img {
-            .name_container {
-              .name_text {
-                font-size: 40px;
-              }
-            }
-          }
-        }
-        .img {
-          height: 100%;
-          width: 100%;
-          padding: 5px;
-          border-radius: 100%;
-          .name_container {
-            .name_text {
-              font-size: 60px;
-            }
-          }
-        }
-      }
-    }
-    .username_text {
-      position: absolute;
-      bottom: 10px;
-      left: 10px;
-      font-weight: 500;
-      color: #7269ef;
-    }
-  }
-`;
+import { Container } from "./styles";
 
 function CallContent() {
   const {
@@ -123,19 +22,37 @@ function CallContent() {
       receivedRes,
       videoStream,
       audioStream,
+      callMessage,
     },
     dispatch: callDispatch,
   } = useContext(CallContext);
   const { vdotokClient } = useContext(VdotokClientContext);
   const [user] = useLocalStorage("user", {});
-  console.log("## cal res CallContent", { uuid });
+  console.log("## cal res CallContent", {
+    uuid,
+    videoStream,
+    video,
+    audio,
+    audioStream,
+    receivedRes,
+  });
+
+  // const acceptCallHandler = () => {
+  //   vdotokClient.AcceptCall(
+  //     document.getElementById("localVideo"),
+  //     document.getElementById("remoteVideo"),
+  //     uuid
+  //   );
+  // };
 
   const acceptCallHandler = () => {
-    vdotokClient.AcceptCall(
-      document.getElementById("localVideo"),
-      document.getElementById("remoteVideo"),
-      uuid
-    );
+    vdotokClient.AcceptCall({
+      localVideo: document.getElementById("localVideo"),
+      remoteVideo: document.getElementById("remoteVideo"),
+      sessionUUID: uuid,
+      video,
+      audio: true,
+    });
   };
 
   const callHandler = () => {
@@ -229,13 +146,37 @@ function CallContent() {
     }
   }, [camera]);
 
+  const callMessageShow = useMemo(() => {
+    if (callMessage) {
+      return (
+        <div className="calling_message_container">
+          <div className="img_container">
+            <ImageStatus
+              src={selectedUser.profile_pic}
+              name={selectedUser.full_name}
+              showStatus={false}
+              alt="user profile"
+              className="img"
+            />
+          </div>
+          <p className="selected_username_text">{selectedUser.full_name}</p>
+          <p className="call_message_text">{callMessage}</p>
+        </div>
+      );
+    }
+  }, [callMessage]);
+
   return (
-    <Container videoStream={videoStream} camera={camera}>
+    <Container
+      videoStream={videoStream}
+      camera={camera}
+      callMessage={callMessage}
+    >
       <div className="inner_container">
         <div className="remote_video_container">
           {showRemoteAudioStreamIcon}
           <video id="remoteVideo" className="video remote_video" autoPlay>
-            <source src={Video} type="video/mp4" />
+            <source type="video/mp4" />
           </video>
           {showRemoteVideoStreamIcon}
           <p className="username_text">{selectedUser.full_name}</p>
@@ -243,12 +184,14 @@ function CallContent() {
         <div className="local_video_container">
           {showLocalAudioStreamIcon}
           <video id="localVideo" className="video local_video" autoPlay>
-            <source src={Video} type="video/mp4" />
+            <source type="video/mp4" />
           </video>
           {showLocalVideoStreamIcon}
           <p className="username_text">You</p>
         </div>
+        {callMessageShow}
       </div>
+
       <CallFooter />
     </Container>
   );

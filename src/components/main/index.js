@@ -47,6 +47,15 @@ function Main(props) {
   // const usersListRef = useRef(usersList);
   console.log("$$", { usersList });
 
+  const callStatusHandler = (callStatusRes) => {
+    const audioStream = callStatusRes.audio_status === 1;
+    const videoStream = callStatusRes.video_status === 1;
+    callDispatch({
+      type: "SET_STREAMS",
+      payload: { audioStream, videoStream },
+    });
+  };
+
   const receiverHandler = (receiverRes) => {
     const findUser = [...usersListRef.current].find(
       (user) => user.ref_id === receiverRes.from
@@ -60,8 +69,16 @@ function Main(props) {
     callDispatch({ type: "SET_RECEIVED_CALL", payload: true });
     callDispatch({ type: "GET_RECEIVED_RES", payload: receiverRes });
     userDispatch({ type: "GET_USER", payload: findUser });
-    if (receiverRes.call_type === "audio") {
+    if (receiverRes.call_type === "audio" || !receiverRes?.data?.stateInfo.video) {
       callDispatch({ type: "UPDATE_CAMERA", payload: false });
+    }
+    if ("video" in receiverRes?.data?.stateInfo) {
+      const callStatus = {
+        audio_status: receiverRes.data.stateInfo.audio,
+        video_status: receiverRes.data.stateInfo.video,
+      };
+      callDispatch({ type: "SET_VIDEO", payload: receiverRes.data.stateInfo.video });
+      callStatusHandler(callStatus);
     }
     // userDispatch({ type: "SELECT_USER", payload: findUser });
   };
@@ -75,18 +92,34 @@ function Main(props) {
       findUser,
     });
     callDispatch({ type: "SET_CALL_TYPE", payload: null });
+    callDispatch({
+      type: "CALL_MESSAGE",
+      payload: "",
+    });
   };
 
   const endCallHandler = () => {
     callDispatch({ type: "RESET_CALL_STATE" });
   };
 
-  const callStatusHandler = (callStatusRes) => {
-    const audioStream = callStatusRes.audio_status === 1;
-    const videoStream = callStatusRes.video_status === 1;
-    callDispatch({
-      type: "SET_STREAMS",
-      payload: { audioStream, videoStream },
+  const callMessageHandler = (callMessageRes) => {
+    if (
+      callMessageRes.type === "TRYING" ||
+      callMessageRes.type === "CONNECTING"
+    ) {
+      return callDispatch({
+        type: "CALL_MESSAGE",
+        payload: "Calling",
+      });
+    } else if (callMessageRes.type === "ALERTING") {
+      return callDispatch({
+        type: "CALL_MESSAGE",
+        payload: "Ringing",
+      });
+    }
+    return callDispatch({
+      type: "CALL_MESSAGE",
+      payload: "",
     });
   };
 
@@ -98,14 +131,11 @@ function Main(props) {
         return rejectCallHandler(response);
       case "CALL_STATUS":
         return callStatusHandler(response);
-      // case "CALL_ACCEPTED":
-      //   return callStatusHandler(response);
-      // case "TRYING":
-      //   return callStatusHandler(response);
-      // case "CONNECTING":
-      //   return callStatusHandler(response);
-      // case "ALERTING":
-      //   return callStatusHandler(response);
+      case "CALL_ACCEPTED":
+      case "TRYING":
+      case "CONNECTING":
+      case "ALERTING":
+        return callMessageHandler(response);
       // case "CALL_STARTED":
       //   return callStatusHandler(response);
       case "MISSED_CALL":

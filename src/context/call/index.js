@@ -12,6 +12,7 @@ const initialState = {
   chat: false,
   receivedRes: {},
   uuid: null,
+  callMessage: "",
 };
 
 const reducer = (state, action) => {
@@ -58,6 +59,8 @@ const reducer = (state, action) => {
       return { ...state, camera: action.payload };
     case "UPDATE_CHAT":
       return { ...state, chat: action.payload };
+    case "CALL_MESSAGE":
+      return { ...state, callMessage: action.payload };
     default:
       return state;
   }
