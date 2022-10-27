@@ -1167,6 +1167,7 @@ class Client extends events_1.EventEmitter {
         this.UUIDSessions[this.currentUser] = uUID;
         this.UUIDSessionTypes[uUID] = "one_to_one";
         console.log(' OnOfferCall :: :: ::', media_type);
+        this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, {});
         // var message = {
         // 	id : 'call',
         // 	from : this.currentUser,
