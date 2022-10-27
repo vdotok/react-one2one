@@ -61,15 +61,17 @@ function ChatSidePanel() {
     setValue(value);
   };
 
+  console.log("% value", { value });
+
   const renderUI = useMemo(() => {
-    console.log("renderUI",{usersList})
+    console.log("renderUI", { usersList });
     if (loading) {
       return <h1>Loading</h1>;
     } else if (usersList?.length) {
       return <UsersListContainer value={value} users={usersList} />;
     }
     return <EmptyUserContainer />;
-  }, [loading, usersList]);
+  }, [loading, usersList, value]);
 
   return (
     <>
