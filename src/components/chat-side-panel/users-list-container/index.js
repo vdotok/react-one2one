@@ -17,6 +17,13 @@ function UsersListContainer(props) {
     return users;
   }, [deferredValue, users]);
 
+  console.log("% filterUserList", {
+    filterUserList,
+    deferredValue,
+    value,
+    users,
+  });
+
   return (
     <>
       {/* <OnlineUsersList users={filterUserList} /> */}

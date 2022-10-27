@@ -69,7 +69,10 @@ function Main(props) {
     callDispatch({ type: "SET_RECEIVED_CALL", payload: true });
     callDispatch({ type: "GET_RECEIVED_RES", payload: receiverRes });
     userDispatch({ type: "GET_USER", payload: findUser });
-    if (receiverRes.call_type === "audio" || !receiverRes?.data?.stateInfo.video) {
+    if (
+      receiverRes.call_type === "audio" ||
+      !receiverRes?.data?.stateInfo.video
+    ) {
       callDispatch({ type: "UPDATE_CAMERA", payload: false });
     }
     if ("video" in receiverRes?.data?.stateInfo) {
@@ -77,7 +80,10 @@ function Main(props) {
         audio_status: receiverRes.data.stateInfo.audio,
         video_status: receiverRes.data.stateInfo.video,
       };
-      callDispatch({ type: "SET_VIDEO", payload: receiverRes.data.stateInfo.video });
+      callDispatch({
+        type: "SET_VIDEO",
+        payload: receiverRes.data.stateInfo.video,
+      });
       callStatusHandler(callStatus);
     }
     // userDispatch({ type: "SELECT_USER", payload: findUser });
@@ -139,6 +145,7 @@ function Main(props) {
       // case "CALL_STARTED":
       //   return callStatusHandler(response);
       case "MISSED_CALL":
+      case "PARTICIPANT_LEFT":
       case "CALL_ENDED":
       case "SOCKET_DROPPED":
         return endCallHandler();
