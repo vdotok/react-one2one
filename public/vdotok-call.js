@@ -1,5 +1,5 @@
 /*!
- * 
+ *
  *  VidTok Call version 0.17.1
  */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -192,8 +192,11 @@ class Client extends events_1.EventEmitter {
         this.reconnectCheckInterval = [];
         this.pingSessionStopped = [];
         this.screenSharingMobile = null;
+        this.turnConfigs = null;
+        this.stunServer = null;
         this.projectID = _Credentials.projectID;
         this.projectSecret = _Credentials.secret;
+        this.stunServer = _Credentials.stunServer;
         this.Authentication(_Credentials);
         //window.addEventListener('offline', this.onOffline);
     }
@@ -294,6 +297,16 @@ class Client extends events_1.EventEmitter {
                         clearTimeout(this.reconnectCheckInterval[messageData.sessionUUID]);
                     }
                     this.AddCandidate(messageData);
+                    break;
+                case 'session_init':
+                    if (messageData.responseCode == 200 && messageData.turn_credentials) {
+                        this.turnConfigs = messageData.turn_credentials;
+                        this.turnConfigs.status = true;
+                        this.turnConfigs.receiver_status = messageData.receiver_status[0];
+                    }
+                    else {
+                        this.turnConfigs = { status: false };
+                    }
                     break;
                 case 'session_invite':
                 case 're_invite':
@@ -663,6 +676,14 @@ class Client extends events_1.EventEmitter {
                     if (error) {
                         rejects(error);
                     }
+                    if (this.sessionInfo[uUID] && this.sessionInfo[uUID].incomingCallData && this.sessionInfo[uUID].incomingCallData.isPeer) {
+                        this.webRtcPeers[uUID].processAnswer(this.sessionInfo[uUID].incomingCallData.callerSDP, (error) => {
+                            if (error) {
+                                EventHandler_1.default.SessionSDP(error, this);
+                                return console.error(error);
+                            }
+                        });
+                    }
                     this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
                         this.onOfferIncomingCall(error, offerSdp, from, uUID);
                         resolve(uUID);
@@ -740,18 +761,27 @@ class Client extends events_1.EventEmitter {
      * Register user to SDK
      */
     Register(referenceID, authorizationToken, reConnect = 0) {
-        this.currentUser = referenceID;
-        this.authorizationToken = authorizationToken;
-        let regMessage = new RegisterModel_1.default();
-        regMessage.requestID = new Date().getTime().toString();
-        regMessage.projectID = this.projectID;
-        regMessage.tenantID = this.projectID;
-        regMessage.referenceID = referenceID;
-        regMessage.authorizationToken = authorizationToken;
-        if (reConnect) {
-            regMessage.reConnect = 1;
+        if (!this.streamHelper) {
+            this.streamHelper = new StreamHelper_1.default(this);
         }
-        regMessage.SendRegisterRequest(this.ws);
+        this.streamHelper.getNatType(this.stunServer).then((data) => {
+            this.currentUser = referenceID;
+            this.authorizationToken = authorizationToken;
+            let regMessage = new RegisterModel_1.default();
+            if (data.natType && data.publicIPs) {
+                regMessage.natType = data.natType;
+                regMessage.publicIPs = data.publicIPs;
+            }
+            regMessage.requestID = new Date().getTime().toString();
+            regMessage.projectID = this.projectID;
+            regMessage.tenantID = this.projectID;
+            regMessage.referenceID = referenceID;
+            regMessage.authorizationToken = authorizationToken;
+            if (reConnect) {
+                regMessage.reConnect = 1;
+            }
+            regMessage.SendRegisterRequest(this.ws);
+        });
     }
     /************************************************************************
      *
@@ -923,6 +953,33 @@ class Client extends events_1.EventEmitter {
             };
         }
         this.nativeScreenShare[params.uUID] = streams.nativeScreenShare;
+        return new Promise((resolve, rejects) => {
+            this.sendStateRPC({}, -1, 0, 'session_init', { to: params.to, from: this.currentFromUser, media_type: (!params.video ? 'audio' : 'video'), session_type: "call", call_type: "one_to_one" });
+            let initInterval = setInterval(() => {
+
+                if (this.turnConfigs && this.turnConfigs.receiver_status && !this.turnConfigs.receiver_status.status) {
+                    rejects({ status: false, message: "User is offline!" });
+                }
+                if (this.turnConfigs) {
+                    clearInterval(initInterval);
+                    if (this.turnConfigs.status) {
+                        options.configuration = {
+                            iceServers: [{
+                                    urls: [
+                                        "stun:" + this.stunServer,
+                                    ]
+                                }, {
+                                    username: this.turnConfigs.username,
+                                    credential: this.turnConfigs.credential,
+                                    urls: this.turnConfigs.url
+                                }]
+                        };
+                    }
+                    this.turnConfigs = null;
+                    resolve(options);
+                }
+            }, 100);
+        });
         return options;
     }
     async startScreenShare(uUID, extraData = null) {
@@ -1013,7 +1070,7 @@ class Client extends events_1.EventEmitter {
             try {
                 options = await this.createOptions(params);
                 if (options && !options.status) {
-                    throw options.message;
+                    rejects(options);
                 }
             }
             catch (e) {
@@ -1149,6 +1206,7 @@ class Client extends events_1.EventEmitter {
         callRequest.requestID = uUID;
         callRequest.sessionUUID = uUID;
         callRequest.mcToken = this.McToken;
+        callRequest.isPeer = 1; //For peer to peer call
         callRequest.sdpOffer = offerSdp;
         callRequest.media_type = media_type;
         if (data && Object.keys(data).length) {
@@ -1530,7 +1588,7 @@ class Client extends events_1.EventEmitter {
         request.data = data;
         this.ws.send(JSON.stringify(request));
     }
-    sendStateRPC(data, uUID, store = 1, requestType = 'hv_info') {
+    sendStateRPC(data, uUID, store = 1, requestType = 'hv_info', extraParams = {}) {
         let request = {};
         request.requestType = requestType;
         //hv_info --> Host to All viewers Communication
@@ -1546,6 +1604,9 @@ class Client extends events_1.EventEmitter {
         request.referenceID = this.currentUser;
         request.data = data;
         request.store = store; //This information should be save or not for new viewers
+        if (extraParams && Object.keys(extraParams).length) {
+            request = Object.assign(Object.assign({}, request), extraParams);
+        }
         this.ws.send(JSON.stringify(request));
     }
     screenStreamStopped(uuid) {
@@ -2556,6 +2617,18 @@ class RegisterModel {
     get socketType() {
         return this.RegPacket.socketType;
     }
+    set natType(natType) {
+        this.RegPacket.natType = natType;
+    }
+    get natType() {
+        return this.RegPacket.natType;
+    }
+    set publicIPs(publicIPs) {
+        this.RegPacket.publicIPs = publicIPs;
+    }
+    get publicIPs() {
+        return this.RegPacket.publicIPs;
+    }
     set reConnect(reConnect) {
         this.RegPacket.reConnect = reConnect;
     }
@@ -2730,6 +2803,12 @@ class CallRequestModel {
     }
     get isRecord() {
         return this.ReqPacket.isRecord;
+    }
+    set isPeer(isPeer) {
+        this.ReqPacket.isPeer = isPeer;
+    }
+    get isPeer() {
+        return this.ReqPacket.isPeer;
     }
     custon_field(field, value) {
         this.ReqPacket[field] = value;
@@ -3492,9 +3571,9 @@ exports.default = ManyToManyClass;
 /**
  * This module contains a set of reusable components that have been found useful
  * during the development of the WebRTC applications with Kurento.
- * 
+ *
  * @module kurentoUtils
- * 
+ *
  * @copyright 2014 Kurento (http://kurento.org/)
  * @license ALv2
  */
@@ -5242,7 +5321,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*!
 
             /android.+;\s(\w+)\s+build\/hm\1/i,                                 // Xiaomi Hongmi 'numeric' models
             /android.+(hm[\s\-_]*note?[\s_]*(?:\d\w)?)\s+build/i,               // Xiaomi Hongmi
-            /android.+(mi[\s\-_]*(?:a\d|one|one[\s_]plus|note lte)?[\s_]*(?:\d?\w?)[\s_]*(?:plus)?)\s+build/i,    
+            /android.+(mi[\s\-_]*(?:a\d|one|one[\s_]plus|note lte)?[\s_]*(?:\d?\w?)[\s_]*(?:plus)?)\s+build/i,
                                                                                 // Xiaomi Mi
             /android.+(redmi[\s\-_]*(?:note)?(?:[\s_]?[\w\s]+))\s+build/i       // Redmi Phones
             ], [[MODEL, /_/g, ' '], [VENDOR, 'Xiaomi'], [TYPE, MOBILE]], [
@@ -5344,7 +5423,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;/*!
             ], [VERSION, [NAME, 'Blink']], [
 
             /(presto)\/([\w\.]+)/i,                                             // Presto
-            /(webkit|trident|netfront|netsurf|amaya|lynx|w3m|goanna)\/([\w\.]+)/i,     
+            /(webkit|trident|netfront|netsurf|amaya|lynx|w3m|goanna)\/([\w\.]+)/i,
                                                                                 // WebKit/Trident/NetFront/NetSurf/Amaya/Lynx/w3m/Goanna
             /(khtml|tasman|links)[\/\s]\(?([\w\.]+)/i,                          // KHTML/Tasman/Links
             /(icab)[\/\s]([23]\.[\d\.]+)/i                                      // iCab
@@ -5998,7 +6077,7 @@ WildEmitter.mixin(WildEmitter);
 ;(function(isNode) {
 
 	/**
-	 * Merge one or more objects 
+	 * Merge one or more objects
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -6011,7 +6090,7 @@ WildEmitter.mixin(WildEmitter);
 	}, publicName = 'merge';
 
 	/**
-	 * Merge two or more objects recursively 
+	 * Merge two or more objects recursively
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -7788,6 +7867,7 @@ class SingleStreamHelper {
         this.audioContextDest = null;
         this.createdFromContext = 0;
         this.emptyStreamInterval = null;
+        this.publicIps = [];
         this.emitter = emitter;
         this.showId = showId;
     }
@@ -7986,6 +8066,90 @@ class SingleStreamHelper {
     }
     blackSilence(...args) {
         return new MediaStream([this.black(...args), this.silence()]);
+    }
+    getNatType(stunServer) {
+        // tslint:disable-next-line:no-shadowed-variable
+        return new Promise((resolve, rejects) => {
+            // parseCandidate from https://github.com/fippo/sdp
+            function parseCandidate(line) {
+                let parts;
+                // Parse both variants.
+                if (line.indexOf("a=candidate:") === 0) {
+                    parts = line.substring(12).split(" ");
+                }
+                else {
+                    parts = line.substring(10).split(" ");
+                }
+                const candidate = {
+                    foundation: parts[0],
+                    component: parts[1],
+                    protocol: parts[2].toLowerCase(),
+                    priority: parseInt(parts[3], 10),
+                    ip: parts[4],
+                    port: parseInt(parts[5], 10),
+                    // skip parts[6] == 'typ'
+                    type: parts[7],
+                };
+                for (let i = 8; i < parts.length; i += 2) {
+                    switch (parts[i]) {
+                        case "raddr":
+                            candidate.relatedAddress = parts[i + 1];
+                            break;
+                        case "rport":
+                            candidate.relatedPort = parseInt(parts[i + 1], 10);
+                            break;
+                        case "tcptype":
+                            candidate.tcpType = parts[i + 1];
+                            break;
+                        default:
+                            // Unknown extensions are silently ignored.
+                            break;
+                    }
+                }
+                return candidate;
+            }
+            const candidates = [];
+            const pc = new RTCPeerConnection({
+                iceServers: [{ urls: "stun:" + stunServer }],
+            });
+            const dc = pc.createDataChannel("foo");
+            dc.onopen = (ev) => {
+                const obj = {
+                    message: "hello world!",
+                    timestamp: new Date(),
+                };
+                dc.send(JSON.stringify(obj));
+            };
+            dc.onerror = (ev) => {
+                rejects(ev);
+            };
+            dc.onclose = (ev) => {
+                //console.log("channel state close", ev);
+            };
+            pc.onicecandidate = (e) => {
+                // eslint-disable-next-line no-console
+                console.log("cand", e.candidate);
+                if (e.candidate && e.candidate.candidate.includes("srflx")) {
+                    const cand = parseCandidate(e.candidate.candidate);
+                    //console.log(JSON.stringify(cand));
+                    if (!candidates[cand.relatedPort]) {
+                        candidates[cand.relatedPort] = [];
+                    }
+                    candidates[cand.relatedPort].push(cand);
+                    this.publicIps.push(cand.ip + ":" + cand.port);
+                }
+                else if (!e.candidate) {
+                    if (Object.keys(candidates).length === 1) {
+                        const ports = candidates[Object.keys(candidates)[0]];
+                        const NatType = ports.length === 1 ? "normal" : "symmetric";
+                        resolve({ natType: NatType, publicIPs: this.publicIps });
+                        // eslint-disable-next-line no-console
+                        console.log("candidates", candidates, ports, this.publicIps, NatType);
+                    }
+                }
+            };
+            pc.createOffer().then((offer) => pc.setLocalDescription(offer));
+        });
     }
 }
 exports.default = SingleStreamHelper;
@@ -8432,7 +8596,7 @@ class ScreenSharingMobile {
             // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
             // @ts-ignore
             // eslint-disable-next-line @typescript-eslint/no-this-alias
-            const context = this, 
+            const context = this,
             // eslint-disable-next-line prefer-rest-params
             args = arguments;
             const later = function () {
@@ -8471,7 +8635,7 @@ class ScreenSharingMobile {
                 async : true, // setting it to false may slow the generation a bit down
                 allowTaint : true,
                 foreignObjectRendering : true,*!/
-    
+
           imageTimeout: 800, // this further delays loading, however this solved a no images in captured screenshot issue
           logging: false,
         });*/
@@ -15497,7 +15661,7 @@ ScreenSharingMobile.onceAutoScrollDone = false;
                         case 4:
                             _i++;
                             return [3 /*break*/, 2];
-                        case 5: 
+                        case 5:
                         // 3. For all its in-flow, non-positioned, block-level descendants in tree order:
                         return [4 /*yield*/, this.renderNodeContent(stack.element)];
                         case 6:

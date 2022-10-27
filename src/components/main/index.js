@@ -152,8 +152,10 @@ function Main(props) {
 
   const initializeSDK = () => {
     let Client = new CVDOTOK.Client({
-      projectID: PROJECT_ID,
-      host: `${user.media_server_map.protocol}://${user.media_server_map.host}:${user.media_server_map.port}/${user.media_server_map.end_point}`,
+        projectID: PROJECT_ID,
+      // host: `${user.media_server_map.protocol}://${user.media_server_map.host}:${user.media_server_map.port}/${user.media_server_map.end_point}`,
+        host: 'wss://r-signalling.vdotok.dev:8443/call',
+        stunServer: user.stun_server_map ? user.stun_server_map.complete_address : ''
     });
     Client.on("connected", (res) => {
       console.log("** vdotok SDK connected", { res });
