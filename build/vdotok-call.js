@@ -285,10 +285,11 @@ class Client extends events_1.EventEmitter {
                     this.mediaType = messageData.media_type;
                     this.isManyToMany = (messageData.call_type == "many_to_many");
                     console.log('incomingCall case: ', message);
+                    let isVideoCall = (messageData.call_type === "video" || messageData.media_type === "video");
                     this.sessionInfo[messageData.sessionUUID] =
                         {
                             incomingCallData: messageData,
-                            call_type: messageData.call_type,
+                            call_type: isVideoCall ? "video" : "audio",
                             isPeer: messageData.isPeer,
                             isSDPAnswerSend: 0,
                             isInitiator: 0
@@ -297,7 +298,7 @@ class Client extends events_1.EventEmitter {
                         if (!messageData.data) {
                             messageData.data = {};
                         }
-                        messageData.data.stateInfo = { audio: 1, video: messageData.call_type === "video" };
+                        messageData.data.stateInfo = { audio: 1, video: isVideoCall };
                     }
                     EventHandler_1.default.OnIncomingCall(messageData, this);
                     // this.incomingCall(messageData);
