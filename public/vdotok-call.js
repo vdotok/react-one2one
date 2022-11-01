@@ -268,7 +268,12 @@ class Client extends events_1.EventEmitter {
                     console.log("Wait for Ice received and try to reconnect!");
                     this.reconnectCheckInterval[messageData.sessionUUID] = setTimeout(() => {
                         console.log("Ice not received, reconnecting...!");
-                        this.PulicBroadCast(this.broadcastingParams[messageData.sessionUUID]);
+                        if (this.sessionInfo[messageData.sessionUUID] && this.sessionInfo[messageData.sessionUUID].call_type === "one_to_many") {
+                            this.PulicBroadCast(this.broadcastingParams[messageData.sessionUUID]);
+                        }
+                        else {
+                            //TODO handle one to one and other call types
+                        }
                     }, 1600);
                     break;
                 case 'incomingCall':
@@ -281,6 +286,10 @@ class Client extends events_1.EventEmitter {
                     this.isManyToMany = (messageData.call_type == "many_to_many");
                     console.log('incomingCall case: ', message);
                     this.sessionInfo[messageData.sessionUUID] = { incomingCallData: messageData };
+                    this.sessionInfo[messageData.sessionUUID].call_type = messageData.call_type;
+                    this.sessionInfo[messageData.sessionUUID].isPeer = messageData.isPeer;
+                    this.sessionInfo[messageData.sessionUUID].isSDPAnswerSend = 0;
+                    this.sessionInfo[messageData.sessionUUID].isInitiator = 0;
                     EventHandler_1.default.OnIncomingCall(messageData, this);
                     // this.incomingCall(messageData);
                     break;
@@ -296,13 +305,38 @@ class Client extends events_1.EventEmitter {
                         console.log("Ice received no need to reconnect!");
                         clearTimeout(this.reconnectCheckInterval[messageData.sessionUUID]);
                     }
-                    this.AddCandidate(messageData);
+                    if (this.sessionInfo[messageData.sessionUUID] && this.sessionInfo[messageData.sessionUUID].isInitiator) {
+                        this.AddCandidate(messageData);
+                    }
+                    else {
+                        if (this.sessionInfo[messageData.sessionUUID] && this.sessionInfo[messageData.sessionUUID].isSDPAnswerSend) {
+                            this.AddCandidate(messageData);
+                        }
+                        else {
+                            if (!this.sessionInfo[messageData.sessionUUID].receivedRemoteCandidates) {
+                                this.sessionInfo[messageData.sessionUUID].receivedRemoteCandidates = [];
+                            }
+                            this.sessionInfo[messageData.sessionUUID].receivedRemoteCandidates.push(messageData);
+                            if (!this.sessionInfo[messageData.sessionUUID].isSDPAnswerSendInterval) {
+                                this.sessionInfo[messageData.sessionUUID].isSDPAnswerSendInterval = setInterval(() => {
+                                    if (this.sessionInfo[messageData.sessionUUID] && this.sessionInfo[messageData.sessionUUID].isSDPAnswerSend) {
+                                        clearInterval(this.sessionInfo[messageData.sessionUUID].isSDPAnswerSendInterval);
+                                        this.sessionInfo[messageData.sessionUUID].isSDPAnswerSendInterval = null;
+                                        console.log("Processing stored ice candidates!");
+                                        for (let i = 0; i < this.sessionInfo[messageData.sessionUUID].receivedRemoteCandidates.length; i++) {
+                                            this.AddCandidate(this.sessionInfo[messageData.sessionUUID].receivedRemoteCandidates[i]);
+                                        }
+                                    }
+                                }, 500);
+                            }
+                        }
+                    }
                     break;
                 case 'session_init':
                     if (messageData.responseCode == 200 && messageData.turn_credentials) {
                         this.turnConfigs = messageData.turn_credentials;
                         this.turnConfigs.status = true;
-                        this.turnConfigs.receiver_status = messageData.receiver_status[0];
+                        this.turnConfigs.receiver_status = messageData.receiver_status[0]; //TODO first participant is used for one to one call, in cass of many to many need different logic
                     }
                     else {
                         this.turnConfigs = { status: false };
@@ -426,6 +460,7 @@ class Client extends events_1.EventEmitter {
             this.mediaType = "video";
             this.to = Array.isArray(params.to) ? params.to : [params.to];
             this.currentFromUser = this.currentUser;
+            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: 1, isInitiator: 1 };
             if (!params.data) {
                 params.data = {};
             }
@@ -463,6 +498,7 @@ class Client extends events_1.EventEmitter {
             this.audioStatus[uUID] = 1;
             this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
             params.sessionUUID = params.uUID = uUID;
+            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: 1, isInitiator: 1 };
             var constraints = {
                 audio: true,
                 video: false
@@ -629,12 +665,17 @@ class Client extends events_1.EventEmitter {
         }
         EventHandler_1.default.SessionStart(message, this);
         if (this.webRtcPeers[message.sessionUUID]) {
-            this.webRtcPeers[message.sessionUUID].processAnswer(message.sdpAnswer, (error) => {
-                if (error) {
-                    EventHandler_1.default.SessionSDP(error, this);
-                    return console.error(error);
-                }
-            });
+            if (message.sdpAnswer) {
+                this.webRtcPeers[message.sessionUUID].processAnswer(message.sdpAnswer, (error) => {
+                    if (error) {
+                        EventHandler_1.default.SessionSDP(error, this);
+                        return console.error(error);
+                    }
+                });
+            }
+            else {
+                console.log("This is peer to peer call no need to process Answer on receiver side.");
+            }
         }
         else if (this.webRtcPeer) {
             this.webRtcPeer.processAnswer(message.sdpAnswer, (error) => {
@@ -677,17 +718,23 @@ class Client extends events_1.EventEmitter {
                         rejects(error);
                     }
                     if (this.sessionInfo[uUID] && this.sessionInfo[uUID].incomingCallData && this.sessionInfo[uUID].incomingCallData.isPeer) {
-                        this.webRtcPeers[uUID].processAnswer(this.sessionInfo[uUID].incomingCallData.callerSDP, (error) => {
+                        //This is peer to peer call
+                        this.webRtcPeers[uUID].processOffer(this.sessionInfo[uUID].incomingCallData.callerSDP, (error, answerSdp) => {
                             if (error) {
                                 EventHandler_1.default.SessionSDP(error, this);
                                 return console.error(error);
                             }
+                            this.onOfferIncomingCall(error, answerSdp, from, uUID);
+                            resolve(uUID);
                         });
                     }
-                    this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                        this.onOfferIncomingCall(error, offerSdp, from, uUID);
-                        resolve(uUID);
-                    });
+                    else {
+                        //this is call through server
+                        this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
+                            this.onOfferIncomingCall(error, offerSdp, from, uUID);
+                            resolve(uUID);
+                        });
+                    }
                 });
             }
             else {
@@ -756,6 +803,7 @@ class Client extends events_1.EventEmitter {
         console.log("===OnOffering Answer", response);
         this.SendPacket(response);
         this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, {});
+        this.sessionInfo[uUID].isSDPAnswerSend = 1;
     }
     /*************
      * Register user to SDK
@@ -911,7 +959,7 @@ class Client extends events_1.EventEmitter {
         CommonHelper_1.SetPlaysInline(params.localVideo);
         var options = {
             mediaConstraints: constraints,
-            onicecandidate: (candidate) => this.onIceCandidate(candidate, this.currentUser),
+            onicecandidate: (candidate) => this.onIceCandidate(candidate, this.sessionInfo[params.uUID].isInitiator ? this.currentUser : this.currentFromUser),
             onerror: this.onError,
             status: true
         };
@@ -956,7 +1004,6 @@ class Client extends events_1.EventEmitter {
         return new Promise((resolve, rejects) => {
             this.sendStateRPC({}, -1, 0, 'session_init', { to: params.to, from: this.currentFromUser, media_type: (!params.video ? 'audio' : 'video'), session_type: "call", call_type: "one_to_one" });
             let initInterval = setInterval(() => {
-
                 if (this.turnConfigs && this.turnConfigs.receiver_status && !this.turnConfigs.receiver_status.status) {
                     rejects({ status: false, message: "User is offline!" });
                 }
@@ -1061,6 +1108,7 @@ class Client extends events_1.EventEmitter {
             params.sessionUUID = params.uUID = uUID;
             this.to = params.to;
             this.currentFromUser = this.currentUser;
+            this.sessionInfo[uUID] = { call_type: "one_to_many", isInitiator: 1 };
             let assUUID = (params.hasOwnProperty("associatedSessionUUID")) ? params["associatedSessionUUID"] : "";
             let isPublic = (params.hasOwnProperty("broadcastType")) ? params["broadcastType"] : 0;
             this.localVideos[uUID] = params.localVideo;

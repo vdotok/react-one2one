@@ -86,7 +86,7 @@ function UserCard(props) {
   } = props;
 
   const { state, dispatch } = useContext(UserContext);
-  console.log({ state });
+  //console.log({ state });
   return (
     <Container
       active={state.selectedUser.ref_id === ref_id}
