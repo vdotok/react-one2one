@@ -38,6 +38,7 @@ export const InputBox = styled.input`
 `;
 export const InputError = styled.p`
   margin-top: 5px;
-  font-size: 14px;
+  font-size: 12px;
+  font-weight: 500;
   color: #ef476f;
 `;

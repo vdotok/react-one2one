@@ -7,7 +7,7 @@ import ChatSidePanel from "components/chat-side-panel";
 import ChatContainer from "components/chat-container";
 import CallContainer from "components/call-container";
 import { useLocalStorage } from "hooks/useLocalStorage";
-import { PROJECT_ID } from "constants";
+import { PROJECT_ID, SECRET_KEY } from "constants";
 import EmptyChatSection from "components/empty-chat-section";
 import { UserContext } from "context/user";
 import { CallContext } from "context/call";
@@ -32,7 +32,7 @@ const MainContainer = styled.div`
 
 function Main(props) {
   const { children } = props;
-  const { setVdotokClient } = useContext(VdotokClientContext);
+  const { setVdotokClient, setMessageClient } = useContext(VdotokClientContext);
   const {
     state: { selectedUser, usersList },
     dispatch: userDispatch,
@@ -157,35 +157,51 @@ function Main(props) {
     }
   };
 
-  const initializeSDK = () => {
-    let Client = new CVDOTOK.Client({
+  const initializeCallingSDK = () => {
+    let CallingClient = new CVDOTOK.Client({
       projectID: PROJECT_ID,
       host: `${user.media_server_map.protocol}://${user.media_server_map.host}:${user.media_server_map.port}/${user.media_server_map.end_point}`,
     });
-    Client.on("connected", (res) => {
-      console.log("** vdotok SDK connected", { res });
-      Client.Register(user.ref_id, user.authorization_token);
+    CallingClient.on("connected", (res) => {
+      console.log("** CallingClient SDK connected", { res });
+      CallingClient.Register(user.ref_id, user.authorization_token);
     });
-    Client.on("register", (res) => {
-      console.log("## register res", { res });
+    CallingClient.on("register", (res) => {
+      console.log("## CallingClient register res", { res });
     });
-    Client.on("call", (res) => {
-      console.log("## Call res", { res });
+    CallingClient.on("call", (res) => {
+      console.log("## CallingClient Call res", { res });
       onCallResponseHandler(res);
     });
-    setVdotokClient(Client);
+    setVdotokClient(CallingClient);
+  };
+
+  const initializeMessagingSDK = () => {
+    let MessagingClient = new MVDOTOK.Client({
+      projectID: PROJECT_ID,
+      secret: SECRET_KEY,
+      host: `${user.messaging_server_map.protocol}://${user.messaging_server_map.host}:${user.messaging_server_map.port}`,
+    });
+
+    console.log("MessagingClient initializing==>", { MessagingClient });
+    MessagingClient.Register(user.ref_id, user.authorization_token);
+    MessagingClient.on("connect", (res) => {
+      console.log("** MessagingClient SDK connected", { res });
+    });
+    setMessageClient(MessagingClient);
   };
 
   useEffect(() => {
-    // initializeSDK();
-    let Client = setTimeout(() => {
+    // initializeCallingSDK();
+    let ClientTimeout = setTimeout(() => {
       console.log("** in timeout", { user });
-      initializeSDK();
+      initializeCallingSDK();
+      initializeMessagingSDK();
     }, 1000);
 
     return () => {
       console.log("claer");
-      clearTimeout(Client);
+      clearTimeout(ClientTimeout);
     };
   }, []);
 

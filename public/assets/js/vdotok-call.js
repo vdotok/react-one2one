@@ -203,6 +203,13 @@ class Client extends events_1.EventEmitter {
     get McToken() {
         return this.mcToken;
     }
+    Disconnect()
+    {
+        this.pingWorker.postMessage({method: 'clearPingInterval'});
+        this.ws.close();
+        this.webRtcPeers = [];
+        this.sessionInfo = [];
+    }
     Authentication(credentials) {
         console.log("====DER===", credentials, this.projectID, this.projectSecret, this.clientToken);
         //this.Connect('wss://cpaas-url-based-demo.vdotok.com:8443/call')

@@ -21,16 +21,19 @@ const initialState = {
   username: "",
   email: "",
   password: "",
+  inputError: "",
 };
 
 const reducer = (state, action) => {
   switch (action.type) {
     case "GET_USERNAME":
-      return { ...state, username: action.value };
+      return { ...state, username: action.value, inputError: "" };
     case "GET_EMAIL":
-      return { ...state, email: action.value };
+      return { ...state, email: action.value, inputError: "" };
     case "GET_PASSWORD":
-      return { ...state, password: action.value };
+      return { ...state, password: action.value, inputError: "" };
+    case "SET_ERROR":
+      return { ...state, inputError: action.payload };
     default:
       return state;
   }
@@ -40,7 +43,7 @@ function Signup() {
   const navigate = useNavigate();
   const [user, setUser] = useLocalStorage("user", {});
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { username, email, password } = state;
+  const { username, email, password, inputError } = state;
 
   useEffect(() => {
     if (user.auth_token) {
@@ -50,17 +53,42 @@ function Signup() {
 
   const SignupHandler = (event) => {
     event.preventDefault();
+
+    if (!username) {
+      return dispatch({
+        type: "SET_ERROR",
+        payload: "Please enter username.",
+      });
+    } else if (!email) {
+      return dispatch({
+        type: "SET_ERROR",
+        payload: "Please enter an email.",
+      });
+    } else if (!password) {
+      return dispatch({
+        type: "SET_ERROR",
+        payload: "Please enter password.",
+      });
+    }
+
     const body = {
       project_id: PROJECT_ID,
-      full_name: username,
-      email,
+      full_name: username.trim(),
+      email: email.toLowerCase(),
       password,
     };
     signup(body)
       .then((res) => {
         console.log({ res });
         if (res.status === 200) {
-          setUser(res.data);
+          if (res.data.status === 200) {
+            setUser(res.data);
+          } else {
+            dispatch({
+              type: "SET_ERROR",
+              payload: res.data.message,
+            });
+          }
         } else {
           console.log("something went wrong", { res });
         }
@@ -108,6 +136,7 @@ function Signup() {
           <Input
             title="Password"
             icon="lock"
+            inputError={inputError}
             inputProps={{
               type: "password",
               placeholder: "Enter Password",

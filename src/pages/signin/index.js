@@ -20,14 +20,17 @@ import {
 const initialState = {
   username_email: "",
   password: "",
+  inputError: "",
 };
 
 const reducer = (state, action) => {
   switch (action.type) {
     case "GET_USERNAME_EMAIL":
-      return { ...state, username_email: action.value };
+      return { ...state, username_email: action.payload, inputError: "" };
     case "GET_PASSWORD":
-      return { ...state, password: action.value };
+      return { ...state, password: action.payload, inputError: "" };
+    case "SET_ERROR":
+      return { ...state, inputError: action.payload };
     default:
       return state;
   }
@@ -38,17 +41,29 @@ function Signin() {
   const [user, setUser] = useLocalStorage("user", {});
 
   const [state, dispatch] = useReducer(reducer, initialState);
-  const { username_email, password } = state;
-  console.log("hello sinin");
+  const { username_email, password, inputError } = state;
   useEffect(() => {
     if (user.auth_token) {
       navigate("/", { replace: true });
     }
   }, [user.auth_token]);
 
-  const loginHandler = () => {
+  const loginHandler = (event) => {
+    event.preventDefault();
+
+    if (!username_email) {
+      return dispatch({
+        type: "SET_ERROR",
+        payload: "Please enter username/email.",
+      });
+    } else if (!password) {
+      return dispatch({
+        type: "SET_ERROR",
+        payload: "Please enter password.",
+      });
+    }
     const body = {
-      email: username_email,
+      email: username_email.toLowerCase(),
       password,
       project_id: PROJECT_ID,
     };
@@ -56,7 +71,14 @@ function Signin() {
       .then((res) => {
         console.log({ res });
         if (res.status === 200) {
-          setUser(res.data);
+          if (res.data.status === 200) {
+            setUser(res.data);
+          } else {
+            dispatch({
+              type: "SET_ERROR",
+              payload: res.data.message,
+            });
+          }
         } else {
           console.log("something went wrong", { res });
         }
@@ -75,12 +97,7 @@ function Signin() {
         </ImageContainer> */}
         <SignupHeading>Sign in</SignupHeading>
         <SignupSubheading>Sign in to continue to Vdotok.</SignupSubheading>
-        <FormContainer
-          onSubmit={(event) => {
-            event.preventDefault();
-            loginHandler();
-          }}
-        >
+        <FormContainer onSubmit={loginHandler}>
           <Input
             title="Username/Email"
             icon="userEmail"
@@ -91,7 +108,7 @@ function Signin() {
               onChange: (event) => {
                 dispatch({
                   type: "GET_USERNAME_EMAIL",
-                  value: event.target.value,
+                  payload: event.target.value,
                 });
               },
             }}
@@ -101,13 +118,14 @@ function Signin() {
             margin="20px 0 0 0"
             title="Password"
             icon="lock"
+            inputError={inputError}
             inputProps={{
               type: "password",
               placeholder: "Enter Password",
               value: password,
               autoComplete: "on",
               onChange: (event) => {
-                dispatch({ type: "GET_PASSWORD", value: event.target.value });
+                dispatch({ type: "GET_PASSWORD", payload: event.target.value });
               },
             }}
           />
