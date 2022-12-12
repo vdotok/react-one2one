@@ -1,5 +1,5 @@
 /*!
- * 
+ *
  *  VidTok Call version 0.17.1
  */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -188,7 +188,6 @@ class Client extends events_1.EventEmitter {
         this.nativeScreenShare = [];
         this.htmlNormalizationCode = null;
         this.socketCloseCheck = null;
-        this.broadcastingParams = [];
         this.reconnectCheckInterval = [];
         this.pingSessionStopped = [];
         this.screenSharingMobile = null;
@@ -199,6 +198,7 @@ class Client extends events_1.EventEmitter {
         this.stunServer = _Credentials.stunServer;
         this.Authentication(_Credentials);
         //window.addEventListener('offline', this.onOffline);
+        window.addEventListener("online", this.onOnline.bind(this));
     }
     set McToken(token) {
         this.mcToken = token;
@@ -227,11 +227,22 @@ class Client extends events_1.EventEmitter {
         }
     }
     onOnline() {
-        window.removeEventListener('online', this.onOnline);
+        //alert("online");
+        /*window.removeEventListener('online', this.onOnline);
         this.socketCloseCheck = setInterval(() => {
             //this.Connect(this.mediaServer, true);
         }, 5000);
-        window.addEventListener('offline', this.onOffline);
+        window.addEventListener('offline', this.onOffline);*/
+        setTimeout(() => {
+            console.log("Current call session count", this.sessionInfo);
+            if (this.sessionInfo && Object.keys(this.sessionInfo).length >= 1) {
+                for (let UUID in this.sessionInfo) {
+                    console.log("Currently trying auto reconnect for  call session", UUID);
+                    this.autoReconnectCall(UUID);
+                }
+            }
+        },2000);
+
     }
     onOffline() {
         window.removeEventListener('offline', this.onOffline);
@@ -245,20 +256,12 @@ class Client extends events_1.EventEmitter {
             console.log('Received message: ', messageData);
             switch (messageData.requestType) {
                 case 'register':
+                    this.McToken = messageData.mcToken;
                     if (!selfReconnect) {
                         RegisterEventHandler_1.default.SetRegisterResponse(messageData, this);
                     }
                     else {
-                        setTimeout(() => {
-                            for (var uUID in this.broadcastingParams) {
-                                // this.broadcastingParams[uUID].video = this.videoStatus[uUID]
-                                // this.broadcastingParams[uUID].audio = this.audioStatus[uUID];
-                                // this.broadcastingParams[uUID].re_invite = 1;
-                                // this.broadcastingParams[uUID].ref_id = this.currentUser;
-                                // this.broadcastingParams[uUID].sessionUUID = uUID;
-                                //this.Broadcasting(this.broadcastingParams[uUID])
-                            }
-                        }, 1000);
+                        this.onOnline();
                     }
                     this.registerPingWorker();
                     break;
@@ -268,12 +271,7 @@ class Client extends events_1.EventEmitter {
                     console.log("Wait for Ice received and try to reconnect!");
                     this.reconnectCheckInterval[messageData.sessionUUID] = setTimeout(() => {
                         console.log("Ice not received, reconnecting...!");
-                        if (this.sessionInfo[messageData.sessionUUID] && this.sessionInfo[messageData.sessionUUID].call_type === "one_to_many") {
-                            this.PulicBroadCast(this.broadcastingParams[messageData.sessionUUID]);
-                        }
-                        else {
-                            //TODO handle one to one and other call types
-                        }
+                        this.autoReconnectCall(messageData.sessionUUID);
                     }, 1600);
                     break;
                 case 'incomingCall':
@@ -360,7 +358,8 @@ class Client extends events_1.EventEmitter {
                     this.SessionCancel(messageData);
                     break;
                 case 'session_break':
-                    this.SessionCancel(messageData, 'break');
+                    EventHandler_1.default.SessionBreak(messageData, this);
+                    //this.SessionCancel(messageData, 'break');
                     //this.DisposeWebrtc(true);
                     break;
                 case 'state_information':
@@ -424,9 +423,10 @@ class Client extends events_1.EventEmitter {
             //EventHandler.OnDisconnection(res,this);
             console.log("OnClose socket==", res);
             this.emit("call", { type: "SOCKET_DROPPED", message: "socket is dropped", uuid: res.sessionUUID });
-            /*this.socketCloseCheck = setInterval(()=>{
+            this.socketCloseCheck = setInterval(() => {
+                console.log("Auto reconnecting.....");
                 this.Connect(mediaServer, true);
-            },5000)*/
+            }, 3000);
         };
         webSocketConnetion.onopen = (res) => {
             if (this.socketCloseCheck) {
@@ -457,6 +457,31 @@ class Client extends events_1.EventEmitter {
         let socket = this.ws;
         return socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING ? true : false;
     }
+    autoReconnectCall(uUID) {
+        if (this.sessionInfo[uUID] && this.sessionInfo[uUID].currentCallParams) {
+            if (this.sessionInfo[uUID].currentCallParams.videoType === 'screen') {
+                this.localVideos[uUID].srcObject.getAudioTracks()[0].stop();
+            }
+            this.sessionInfo[uUID].currentCallParams.video = this.videoStatus[uUID];
+            this.sessionInfo[uUID].currentCallParams.audio = this.audioStatus[uUID];
+            this.sessionInfo[uUID].currentCallParams.re_invite = 1;
+            this.sessionInfo[uUID].currentCallParams.ref_id = this.currentUser;
+            this.sessionInfo[uUID].currentCallParams.sessionUUID = uUID;
+            if (this.sessionInfo[uUID] && this.sessionInfo[uUID].call_type === "one_to_many") {
+                this.PulicBroadCast(this.sessionInfo[uUID].currentCallParams);
+            }
+            else if (this.sessionInfo[uUID] && this.sessionInfo[uUID].call_type === "one_to_one") {
+                this.Call(this.sessionInfo[uUID].currentCallParams);
+            }
+            else {
+                //TODO handle other call types
+                console.error("Auto reconnect logic not available for call type -> ", this.sessionInfo[uUID].call_type);
+            }
+        }
+        else {
+            console.error("Unable to auto reconnect call, Session Info not available for this session -> ", uUID);
+        }
+    }
     ///////////////////////////////////////////////
     ///////////////////// one to one call
     async Call(params) {
@@ -470,11 +495,12 @@ class Client extends events_1.EventEmitter {
             this.mediaType = "video";
             this.to = Array.isArray(params.to) ? params.to : [params.to];
             this.currentFromUser = this.currentUser;
-            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: 1, isInitiator: 1 };
+            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: 0, isInitiator: 1 };
             if (!params.data) {
                 params.data = {};
             }
             params.data.stateInfo = { video: params.video, audio: params.audio };
+            this.sessionInfo[uUID].currentCallParams = params;
             let options = {};
             try {
                 options = await this.createOptions(params);
@@ -494,7 +520,7 @@ class Client extends events_1.EventEmitter {
                     return console.error(error);
                 }
                 this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                    this.onOfferCall(error, offerSdp, this.mediaType, uUID, (params && params.data ? params.data : {}), params.with_ai);
+                    this.onOfferCall(error, offerSdp, this.mediaType, uUID, (params && params.data ? params.data : {}), params.with_ai, params.re_invite, params.ref_id);
                     resolve(uUID);
                 });
             });
@@ -1078,7 +1104,7 @@ class Client extends events_1.EventEmitter {
             let isPublic = (params.hasOwnProperty("broadcastType")) ? params["broadcastType"] : 0;
             this.localVideos[uUID] = params.localVideo;
             let session_type = "call";
-            this.broadcastingParams[uUID] = params;
+            this.sessionInfo[uUID].currentCallParams = params;
             let options = {};
             try {
                 options = await this.createOptions(params);
@@ -1156,15 +1182,7 @@ class Client extends events_1.EventEmitter {
             this.reInviteTimeout[uUID] = setTimeout(() => {
                 console.log("Re_inviting because ice state = ", this.webRtcPeers[uUID].peerConnection.iceConnectionState);
                 try {
-                    if (this.broadcastingParams[uUID].videoType === 'screen') {
-                        this.localVideos[uUID].srcObject.getAudioTracks()[0].stop();
-                    }
-                    this.broadcastingParams[uUID].video = this.videoStatus[uUID];
-                    this.broadcastingParams[uUID].audio = this.audioStatus[uUID];
-                    this.broadcastingParams[uUID].re_invite = 1;
-                    this.broadcastingParams[uUID].ref_id = this.currentUser;
-                    this.broadcastingParams[uUID].sessionUUID = uUID;
-                    this.PulicBroadCast(this.broadcastingParams[uUID]);
+                    this.autoReconnectCall(uUID);
                 }
                 catch (e) {
                     console.log("failed to reinvite on ice fail", e);
@@ -1186,9 +1204,11 @@ class Client extends events_1.EventEmitter {
      * @param uUID
      * @param data
      * @param with_ai
+     * @param re_invite
+     * @param ref_id
      * @returns
      */
-    onOfferCall(error, offerSdp, media_type, uUID, data = {}, with_ai = false) {
+    onOfferCall(error, offerSdp, media_type, uUID, data = {}, with_ai = false, re_invite = false, ref_id = null) {
         if (error) {
             EventHandler_1.default.OnOfferIncomingCall(error, this);
             return console.error('Error generating the call offer ', error);
@@ -1199,7 +1219,7 @@ class Client extends events_1.EventEmitter {
         callRequest.requestID = uUID;
         callRequest.sessionUUID = uUID;
         callRequest.mcToken = this.McToken;
-        callRequest.isPeer = 1; //For peer to peer call
+        //callRequest.isPeer = 1; //For peer to peer call
         callRequest.sdpOffer = offerSdp;
         callRequest.media_type = media_type;
         if (data && Object.keys(data).length) {
@@ -1213,6 +1233,14 @@ class Client extends events_1.EventEmitter {
         }
         else {
             callRequest.call_type = "one_to_one";
+        }
+        if (re_invite && ref_id) {
+            callRequest.requestType = 're_invite';
+            callRequest.referenceID = ref_id;
+        }
+        else {
+            callRequest.requestType = 'session_invite';
+            delete callRequest.referenceID;
         }
         callRequest.SendCallRequest(this.ws);
         this.UUIDSessions[this.currentUser] = uUID;
@@ -1710,7 +1738,7 @@ class Client extends events_1.EventEmitter {
     removeBandwidthRestriction(sdp) {
         return sdp.replace(/b=AS:.*\r\n/, '').replace(/b=TIAS:.*\r\n/, '');
     }
-    Disconnect() {
+    Disconnect() {alert('disconnect')
         this.pingWorker.postMessage({ method: 'clearPingInterval' });
         this.ws.close();
         this.webRtcPeers = [];
@@ -2304,6 +2332,9 @@ class EventHandlerService {
     }
     SessionSDP(res, instance) {
         instance.emit("error", { type: "PROCESS_ANSWER", message: "Unable to process remote SDP." });
+    }
+    SessionBreak(res, instance) {
+        instance.emit("call", { type: "SESSION_BREAK", message: "Current Call Session break with other user.", data: res.data, uuid: res.sessionUUID });
     }
     OnAddCandidate(error, instance) {
         instance.emit("error", { type: "CALL_ADDCANDIDATE", message: "Unable to add ice candidate." });
@@ -3571,9 +3602,9 @@ exports.default = ManyToManyClass;
 /**
  * This module contains a set of reusable components that have been found useful
  * during the development of the WebRTC applications with Kurento.
- * 
+ *
  * @module kurentoUtils
- * 
+ *
  * @copyright 2014 Kurento (http://kurento.org/)
  * @license ALv2
  */
@@ -4745,7 +4776,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment. 
+   Supports browser & node.js environment.
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////
@@ -6067,7 +6098,7 @@ WildEmitter.mixin(WildEmitter);
 ;(function(isNode) {
 
 	/**
-	 * Merge one or more objects 
+	 * Merge one or more objects
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -6080,7 +6111,7 @@ WildEmitter.mixin(WildEmitter);
 	}, publicName = 'merge';
 
 	/**
-	 * Merge two or more objects recursively 
+	 * Merge two or more objects recursively
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -7858,6 +7889,15 @@ class SingleStreamHelper {
         this.createdFromContext = 0;
         this.emptyStreamInterval = null;
         this.publicIps = [];
+        this.checkOnlineStatus = async () => {
+            try {
+                const online = await fetch("/1pixel.png");
+                return online.status >= 200 && online.status < 300; // either true or false
+            }
+            catch (err) {
+                return false; // definitely offline
+            }
+        };
         this.emitter = emitter;
         this.showId = showId;
     }
@@ -8587,7 +8627,7 @@ class ScreenSharingMobile {
             // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
             // @ts-ignore
             // eslint-disable-next-line @typescript-eslint/no-this-alias
-            const context = this, 
+            const context = this,
             // eslint-disable-next-line prefer-rest-params
             args = arguments;
             const later = function () {
@@ -8626,7 +8666,7 @@ class ScreenSharingMobile {
                 async : true, // setting it to false may slow the generation a bit down
                 allowTaint : true,
                 foreignObjectRendering : true,*!/
-    
+
           imageTimeout: 800, // this further delays loading, however this solved a no images in captured screenshot issue
           logging: false,
         });*/
@@ -15652,7 +15692,7 @@ ScreenSharingMobile.onceAutoScrollDone = false;
                         case 4:
                             _i++;
                             return [3 /*break*/, 2];
-                        case 5: 
+                        case 5:
                         // 3. For all its in-flow, non-positioned, block-level descendants in tree order:
                         return [4 /*yield*/, this.renderNodeContent(stack.element)];
                         case 6:
@@ -17282,7 +17322,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment. 
+   Supports browser & node.js environment.
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////
