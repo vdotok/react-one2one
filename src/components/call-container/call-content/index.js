@@ -72,7 +72,10 @@ function CallContent() {
         console.log("## VideoCall res", res);
         callDispatch({ type: "SET_UUID", payload: res });
       })
-      .catch((err) => console.log("## VideoCall Err", err));
+      .catch((err) => {
+          console.log("## VideoCall Err", err);
+          alert(err.error ? err.error.message : err.message);
+      });
   };
 
   useEffect(() => {

@@ -197,8 +197,7 @@ class Client extends events_1.EventEmitter {
         this.projectSecret = _Credentials.secret;
         this.stunServer = _Credentials.stunServer;
         this.Authentication(_Credentials);
-        //window.addEventListener('offline', this.onOffline);
-        window.addEventListener("online", this.onOnline.bind(this));
+        window.addEventListener('online', this.onOnline.bind(this));
     }
     set McToken(token) {
         this.mcToken = token;
@@ -226,22 +225,22 @@ class Client extends events_1.EventEmitter {
             });
         }
     }
-    onOnline() {
-        //alert("online");
+    async onOnline() {
         /*window.removeEventListener('online', this.onOnline);
-        this.socketCloseCheck = setInterval(() => {
+        this.socketCloseCheck = setInterval(()=>{
             //this.Connect(this.mediaServer, true);
-        }, 5000);
+        },5000)
         window.addEventListener('offline', this.onOffline);*/
-        setTimeout(() => {
+        setTimeout(async () => {
             console.log("Current call session count", this.sessionInfo);
-            if (this.sessionInfo && Object.keys(this.sessionInfo).length >= 1) {
-                for (let UUID in this.sessionInfo) {
-                    console.log("Currently trying auto reconnect for  call session", UUID);
-                    this.autoReconnectCall(UUID);
-                }
+        if (this.sessionInfo && Object.keys(this.sessionInfo).length >= 1) {
+            for (let UUID in this.sessionInfo) {
+                console.log("Currently trying auto reconnect for  call session", UUID);
+                let result = await this.autoReconnectCall(UUID);
+                console.log("Reconnect result -> ", result);
             }
-        },2000);
+        }
+        },1000);
 
     }
     onOffline() {
@@ -271,7 +270,8 @@ class Client extends events_1.EventEmitter {
                     console.log("Wait for Ice received and try to reconnect!");
                     this.reconnectCheckInterval[messageData.sessionUUID] = setTimeout(() => {
                         console.log("Ice not received, reconnecting...!");
-                        this.autoReconnectCall(messageData.sessionUUID);
+                        let result = this.autoReconnectCall(messageData.sessionUUID);
+                        console.log(result);
                     }, 1600);
                     break;
                 case 'incomingCall':
@@ -468,18 +468,19 @@ class Client extends events_1.EventEmitter {
             this.sessionInfo[uUID].currentCallParams.ref_id = this.currentUser;
             this.sessionInfo[uUID].currentCallParams.sessionUUID = uUID;
             if (this.sessionInfo[uUID] && this.sessionInfo[uUID].call_type === "one_to_many") {
-                this.PulicBroadCast(this.sessionInfo[uUID].currentCallParams);
+                return this.PulicBroadCast(this.sessionInfo[uUID].currentCallParams);
             }
             else if (this.sessionInfo[uUID] && this.sessionInfo[uUID].call_type === "one_to_one") {
-                this.Call(this.sessionInfo[uUID].currentCallParams);
+                console.log("this.Call is called with params", this.sessionInfo[uUID].currentCallParams);
+                return this.Call(this.sessionInfo[uUID].currentCallParams);
             }
             else {
                 //TODO handle other call types
-                console.error("Auto reconnect logic not available for call type -> ", this.sessionInfo[uUID].call_type);
+                return { message: "Auto reconnect logic not available for call type -> " + this.sessionInfo[uUID].call_type, status: false };
             }
         }
         else {
-            console.error("Unable to auto reconnect call, Session Info not available for this session -> ", uUID);
+            return { message: "Unable to auto reconnect call, Session Info not available for this session -> " + uUID, status: false };
         }
     }
     ///////////////////////////////////////////////
@@ -1182,7 +1183,8 @@ class Client extends events_1.EventEmitter {
             this.reInviteTimeout[uUID] = setTimeout(() => {
                 console.log("Re_inviting because ice state = ", this.webRtcPeers[uUID].peerConnection.iceConnectionState);
                 try {
-                    this.autoReconnectCall(uUID);
+                    let result = this.autoReconnectCall(uUID);
+                    console.log(result);
                 }
                 catch (e) {
                     console.log("failed to reinvite on ice fail", e);
