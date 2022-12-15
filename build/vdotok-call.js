@@ -193,6 +193,7 @@ class Client extends events_1.EventEmitter {
         this.screenSharingMobile = null;
         this.turnConfigs = null;
         this.stunServer = null;
+        this.socketState = "disconnected";
         this.projectID = _Credentials.projectID;
         this.projectSecret = _Credentials.secret;
         this.stunServer = _Credentials.stunServer;
@@ -231,17 +232,22 @@ class Client extends events_1.EventEmitter {
             //this.Connect(this.mediaServer, true);
         },5000)
         window.addEventListener('offline', this.onOffline);*/
-        setTimeout(async () => {
-            console.log("Current call session count", this.sessionInfo);
-        if (this.sessionInfo && Object.keys(this.sessionInfo).length >= 1) {
-            for (let UUID in this.sessionInfo) {
-                console.log("Currently trying auto reconnect for  call session", UUID);
-                let result = await this.autoReconnectCall(UUID);
-                console.log("Reconnect result -> ", result);
+        let socketCheckInterval = setInterval(async () => {
+            if (this.socketState === "registered") {
+                clearInterval(socketCheckInterval);
+                console.log("Current call session count", this.sessionInfo.length);
+                if (this.sessionInfo && Object.keys(this.sessionInfo).length >= 1) {
+                    for (let UUID in this.sessionInfo) {
+                        console.log("Currently trying auto reconnect for  call session", UUID);
+                        let result = await this.autoReconnectCall(UUID);
+                        console.log("Reconnect result -> ", result);
+                    }
+                }
             }
-        }
-        },1000);
-
+            else {
+                console.log("Socket is not registered yet! Current socket state -> ", this.socketState);
+            }
+        }, 1500);
     }
     onOffline() {
         window.removeEventListener('offline', this.onOffline);
@@ -255,7 +261,13 @@ class Client extends events_1.EventEmitter {
             console.log('Received message: ', messageData);
             switch (messageData.requestType) {
                 case 'register':
-                    this.McToken = messageData.mcToken;
+                    if (messageData.responseCode == 200) {
+                        this.McToken = messageData.mcToken;
+                        this.socketState = "registered";
+                    }
+                    else {
+                        this.socketState = "fail_registration";
+                    }
                     if (!selfReconnect) {
                         RegisterEventHandler_1.default.SetRegisterResponse(messageData, this);
                     }
@@ -420,13 +432,23 @@ class Client extends events_1.EventEmitter {
             }
         };
         webSocketConnetion.onclose = (res) => {
+            this.socketState = "disconnected";
             //EventHandler.OnDisconnection(res,this);
             console.log("OnClose socket==", res);
             this.emit("call", { type: "SOCKET_DROPPED", message: "socket is dropped", uuid: res.sessionUUID });
+            let reconnectCount = 0;
             this.socketCloseCheck = setInterval(() => {
                 console.log("Auto reconnecting.....");
-                this.Connect(mediaServer, true);
-            }, 3000);
+                if (reconnectCount > 5) {
+                    clearInterval(this.socketCloseCheck);
+                    console.log("Unable to reconnect socket automatically!");
+                    return;
+                }
+                if (this.socketState == "disconnected" || this.socketState == "fail_registration") {
+                    this.Connect(mediaServer, true);
+                    reconnectCount++;
+                }
+            }, 1500);
         };
         webSocketConnetion.onopen = (res) => {
             if (this.socketCloseCheck) {
@@ -444,6 +466,7 @@ class Client extends events_1.EventEmitter {
         // 	console.log("OnMessage socket==",res);
         //   };
         webSocketConnetion.onerror = (res) => {
+            this.socketState = "disconnected";
             EventHandler_1.default.OnDisconnection(res, this);
             console.log("OnError socket==", res);
             this.emit("call", { type: "SOCKET_DROPPED", message: "socket is dropped", uuid: res.sessionUUID });
@@ -470,7 +493,7 @@ class Client extends events_1.EventEmitter {
             if (this.sessionInfo[uUID] && this.sessionInfo[uUID].call_type === "one_to_many") {
                 return this.PulicBroadCast(this.sessionInfo[uUID].currentCallParams);
             }
-            else if (this.sessionInfo[uUID] && this.sessionInfo[uUID].call_type === "one_to_one") {
+            else if (this.sessionInfo[uUID] && ["audio", "video", "one_to_one"].includes(this.sessionInfo[uUID].call_type)) {
                 console.log("this.Call is called with params", this.sessionInfo[uUID].currentCallParams);
                 return this.Call(this.sessionInfo[uUID].currentCallParams);
             }
@@ -487,6 +510,10 @@ class Client extends events_1.EventEmitter {
     ///////////////////// one to one call
     async Call(params) {
         return new Promise(async (resolve, rejects) => {
+            if(this.socketState !== "registered")
+            {
+                rejects("Not registered with vdotok!")
+            }
             let uUID = (params.hasOwnProperty("sessionUUID")) ? params["sessionUUID"] : new Date().getTime().toString();
             this.videoStatus[uUID] = (params.video ? 1 : 0);
             this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
@@ -751,6 +778,7 @@ class Client extends events_1.EventEmitter {
                 this.localVideos[uUID] = options.localVideo;
             }
             if (uUID) {
+                this.sessionInfo[uUID].currentCallParams = params;
                 this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
                     if (error) {
                         rejects(error);
