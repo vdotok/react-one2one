@@ -512,7 +512,8 @@ class Client extends events_1.EventEmitter {
         return new Promise(async (resolve, rejects) => {
             if(this.socketState !== "registered")
             {
-                rejects("Not registered with vdotok!")
+                rejects({error:"Not registered with vdotok!", status:false});
+                return;
             }
             let uUID = (params.hasOwnProperty("sessionUUID")) ? params["sessionUUID"] : new Date().getTime().toString();
             this.videoStatus[uUID] = (params.video ? 1 : 0);
