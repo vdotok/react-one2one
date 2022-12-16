@@ -254,6 +254,7 @@ class Client extends events_1.EventEmitter {
         window.addEventListener("online", this.onOnline);
     }
     Connect(mediaServer, selfReconnect = false) {
+        this.socketState = "connecting";
         var webSocketConnetion = new WebSocket(mediaServer);
         this.mediaServer = mediaServer;
         webSocketConnetion.onmessage = (message) => {
@@ -438,8 +439,8 @@ class Client extends events_1.EventEmitter {
             this.emit("call", { type: "SOCKET_DROPPED", message: "socket is dropped", uuid: res.sessionUUID });
             let reconnectCount = 0;
             this.socketCloseCheck = setInterval(() => {
-                console.log("Auto reconnecting.....");
-                if (reconnectCount > 5) {
+                console.log("Auto reconnecting..... count -> ", reconnectCount);
+                if (reconnectCount > 3) {
                     clearInterval(this.socketCloseCheck);
                     console.log("Unable to reconnect socket automatically!");
                     return;
@@ -510,9 +511,8 @@ class Client extends events_1.EventEmitter {
     ///////////////////// one to one call
     async Call(params) {
         return new Promise(async (resolve, rejects) => {
-            if(this.socketState !== "registered")
-            {
-                rejects({message:"Not registered with vdotok! Current state -> "+this.socketState, status:false})
+            if (this.socketState !== "registered") {
+                rejects({ message: "Not registered with vdotok! Current state -> " + this.socketState, status: false });
                 return;
             }
             let uUID = (params.hasOwnProperty("sessionUUID")) ? params["sessionUUID"] : new Date().getTime().toString();
@@ -1769,7 +1769,7 @@ class Client extends events_1.EventEmitter {
     removeBandwidthRestriction(sdp) {
         return sdp.replace(/b=AS:.*\r\n/, '').replace(/b=TIAS:.*\r\n/, '');
     }
-    Disconnect() {alert('disconnect')
+    Disconnect() {
         this.pingWorker.postMessage({ method: 'clearPingInterval' });
         this.ws.close();
         this.webRtcPeers = [];
