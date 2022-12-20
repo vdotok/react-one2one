@@ -508,8 +508,18 @@ class Client extends events_1.EventEmitter {
                 return this.PulicBroadCast(this.sessionInfo[uUID].currentCallParams);
             }
             else if (this.sessionInfo[uUID] && ["audio", "video", "one_to_one"].includes(this.sessionInfo[uUID].call_type)) {
-                console.log("this.Call is called with params", this.sessionInfo[uUID].currentCallParams);
-                return this.Call(this.sessionInfo[uUID].currentCallParams);
+                if (this.sessionInfo[uUID].isPeer) {
+                    console.log("Peer to Peer call");
+                    this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
+                        let params = this.sessionInfo[uUID].currentCallParams;
+                        this.onOfferCall(error, offerSdp, this.mediaType, uUID, (params && params.data ? params.data : {}), params.with_ai, params.re_invite, params.ref_id);
+                        console.log("Call autoConnected successfully", uUID);
+                    });
+                }
+                else {
+                    console.log("Non peer call, this.Call is called with params", this.sessionInfo[uUID].currentCallParams);
+                    return this.Call(this.sessionInfo[uUID].currentCallParams);
+                }
             }
             else {
                 //TODO handle other call types
@@ -537,7 +547,7 @@ class Client extends events_1.EventEmitter {
             this.mediaType = "video";
             this.to = Array.isArray(params.to) ? params.to : [params.to];
             this.currentFromUser = this.currentUser;
-            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: 0, isInitiator: 1 };
+            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: 1, isInitiator: 1 };
             if (!params.data) {
                 params.data = {};
             }
@@ -1263,7 +1273,7 @@ class Client extends events_1.EventEmitter {
         callRequest.requestID = uUID;
         callRequest.sessionUUID = uUID;
         callRequest.mcToken = this.McToken;
-        //callRequest.isPeer = 1; //For peer to peer call
+        callRequest.isPeer = 1; //For peer to peer call
         callRequest.sdpOffer = offerSdp;
         callRequest.media_type = media_type;
         if (data && Object.keys(data).length) {
@@ -7981,6 +7991,9 @@ class SingleStreamHelper {
         }
         return deviceId;
     }
+    delay(time) {
+        return new Promise((resolve) => setTimeout(resolve, time));
+    }
     async getStream(audio = true, video = true, type = "camera", facingMode = "user") {
         if (video && type == "screen") {
             this.screenSharingMobile = new ScreenSharingMobile_1.default(this.emitter);
@@ -7997,6 +8010,7 @@ class SingleStreamHelper {
                     .forEach(function (track) {
                     track.stop();
                 });
+                await this.delay(1000); //Wait for camera to properly close on some mobile devices
             }
             options.video = {
                 width: { ideal: 1024 },
