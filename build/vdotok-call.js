@@ -456,8 +456,7 @@ class Client extends events_1.EventEmitter {
                     else {
                         console.log("Not reconnecting socket as time is less then 5 seconds!");
                     }
-                    //@ts-ignore
-                    this.reconnectCount.push((new Data()).getTime());
+                    this.reconnectCount.push((new Date()).getTime());
                 }
             }, 1500);
         };
