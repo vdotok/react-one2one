@@ -194,6 +194,7 @@ class Client extends events_1.EventEmitter {
         this.turnConfigs = null;
         this.stunServer = null;
         this.socketState = "disconnected";
+        this.reconnectCount = [];
         this.projectID = _Credentials.projectID;
         this.projectSecret = _Credentials.secret;
         this.stunServer = _Credentials.stunServer;
@@ -437,17 +438,26 @@ class Client extends events_1.EventEmitter {
             //EventHandler.OnDisconnection(res,this);
             console.log("OnClose socket==", res);
             this.emit("call", { type: "SOCKET_DROPPED", message: "socket is dropped", uuid: res.sessionUUID });
-            let reconnectCount = 0;
+            if (this.socketCloseCheck) {
+                clearInterval(this.socketCloseCheck);
+            }
             this.socketCloseCheck = setInterval(() => {
-                console.log("Auto reconnecting..... count -> ", reconnectCount);
-                if (reconnectCount > 3) {
+                console.log("Auto reconnecting..... count -> ", this.reconnectCount.length);
+                if (this.reconnectCount.length > 3) {
                     clearInterval(this.socketCloseCheck);
                     console.log("Unable to reconnect socket automatically!");
                     return;
                 }
                 if (this.socketState == "disconnected" || this.socketState == "fail_registration") {
-                    this.Connect(mediaServer, true);
-                    reconnectCount++;
+                    let seconds = this.reconnectCount ? Math.abs((((new Date()).getTime()) - this.reconnectCount[this.reconnectCount.length - 1]) / 1000) : 0;
+                    if (seconds > 5) {
+                        this.Connect(mediaServer, true);
+                    }
+                    else {
+                        console.log("Not reconnecting socket as time is less then 5 seconds!");
+                    }
+                    //@ts-ignore
+                    this.reconnectCount.push((new Data()).getTime());
                 }
             }, 1500);
         };
@@ -1007,11 +1017,11 @@ class Client extends events_1.EventEmitter {
         if (params.localVideo) {
             options.localVideo = params.localVideo;
         }
-        if (params.remoteVideo) {
-            options.remoteVideo = params.remoteVideo;
-        }
         else if (streams.combine) {
             options.localVideo = this.getTempVideo(streams.combine);
+        }
+        if (params.remoteVideo) {
+            options.remoteVideo = params.remoteVideo;
         }
         if (streams.video && params.videoType === "screen") {
             streams.video.getVideoTracks()[0].onended = () => {
