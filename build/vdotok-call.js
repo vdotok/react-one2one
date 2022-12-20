@@ -510,11 +510,12 @@ class Client extends events_1.EventEmitter {
             else if (this.sessionInfo[uUID] && ["audio", "video", "one_to_one"].includes(this.sessionInfo[uUID].call_type)) {
                 if (this.sessionInfo[uUID].isPeer) {
                     console.log("Peer to Peer call");
-                    this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
+                    /*this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
                         let params = this.sessionInfo[uUID].currentCallParams;
                         this.onOfferCall(error, offerSdp, this.mediaType, uUID, (params && params.data ? params.data : {}), params.with_ai, params.re_invite, params.ref_id);
                         console.log("Call autoConnected successfully", uUID);
-                    });
+                    });*/
+                    this.webRtcPeers[uUID].peerConnection.restartIce();
                 }
                 else {
                     console.log("Non peer call, this.Call is called with params", this.sessionInfo[uUID].currentCallParams);
