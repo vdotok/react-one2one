@@ -233,6 +233,7 @@ class Client extends events_1.EventEmitter {
             //this.Connect(this.mediaServer, true);
         },5000)
         window.addEventListener('offline', this.onOffline);*/
+        this.reconnectCount = [];
         let socketCheckInterval = setInterval(async () => {
             if (this.socketState === "registered") {
                 clearInterval(socketCheckInterval);
@@ -444,7 +445,7 @@ class Client extends events_1.EventEmitter {
             this.socketCloseCheck = setInterval(() => {
                 console.log("Auto reconnecting..... count -> ", this.reconnectCount.length);
                 if (this.reconnectCount.length > 5) {
-                    clearInterval(this.socketCloseCheck);
+                    //clearInterval(this.socketCloseCheck);
                     console.log("Unable to reconnect socket automatically!");
                     this.pingWorker.postMessage({ method: 'clearPingInterval' });
                     return;
