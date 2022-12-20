@@ -145,9 +145,9 @@ function Main(props) {
       // case "CALL_STARTED":
       //   return callStatusHandler(response);
       case "MISSED_CALL":
-      case "PARTICIPANT_LEFT":
+      //case "PARTICIPANT_LEFT":
       case "CALL_ENDED":
-      case "SOCKET_DROPPED":
+      //case "SOCKET_DROPPED":
         return endCallHandler();
       // case "SOCKET_DROPPED"  ndler(response);
       // case "PARTICIPANT_LEFT":
