@@ -788,7 +788,7 @@ class Client extends events_1.EventEmitter {
             this.audioStatus[uUID] = (params.audio ? 1 : 0);
             this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
             let options = {};
-            params.to = [this.sessionInfo[uUID].incomingCallData.from];
+            params.to = [this.currentUser];
             try {
                 options = await this.createOptions(params);
                 if (options && !options.status) {
@@ -1291,8 +1291,10 @@ class Client extends events_1.EventEmitter {
         if (re_invite && ref_id) {
             callRequest.requestType = 're_invite';
             callRequest.referenceID = ref_id;
-            callRequest.deleteKey('from');
-            callRequest.deleteKey('to');
+            if (!callRequest.isPeer) {
+                callRequest.deleteKey('from');
+                callRequest.deleteKey('to');
+            }
         }
         else {
             callRequest.requestType = 'session_invite';
