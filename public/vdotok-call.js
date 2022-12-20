@@ -446,17 +446,19 @@ class Client extends events_1.EventEmitter {
                 if (this.reconnectCount.length > 5) {
                     clearInterval(this.socketCloseCheck);
                     console.log("Unable to reconnect socket automatically!");
+                    this.pingWorker.postMessage({ method: 'clearPingInterval' });
                     return;
                 }
                 if (this.socketState == "disconnected" || this.socketState == "fail_registration") {
                     let currentDate = (new Date()).getTime();
                     let seconds = this.reconnectCount && this.reconnectCount.length ? (Math.abs((currentDate - this.reconnectCount[this.reconnectCount.length - 1])) / 1000) : 0;
+                    console.log("current difference in seconds ->", seconds, "current date -> ", currentDate, "reconnect history -> ", this.reconnectCount)
                     if (seconds === 0 || seconds >= 3) {
                         this.Connect(mediaServer, true);
                         this.reconnectCount.push((new Date()).getTime());
                     }
                     else {
-                        console.log("Not reconnecting socket as time is less then 5 seconds!");
+                        console.log("Not reconnecting socket as time is less then 3 seconds!");
                     }
                 }
             }, 2000);
@@ -1695,6 +1697,7 @@ class Client extends events_1.EventEmitter {
                                     {
                                         data.interval =  5000;
                                     }
+                                    clearPingInterval();
                                     startPingInterval(data.interval);
                                 }
                                 else if(method === 'clearPingInterval')
@@ -20020,6 +20023,7 @@ class Broadcast extends events_1.EventEmitter {
                                     {
                                         data.interval =  5000;
                                     }
+                                    clearPingInterval();
                                     startPingInterval(data.interval);
                                 }
                                 else if(method === 'clearPingInterval')

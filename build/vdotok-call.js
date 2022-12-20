@@ -446,6 +446,7 @@ class Client extends events_1.EventEmitter {
                 if (this.reconnectCount.length > 5) {
                     clearInterval(this.socketCloseCheck);
                     console.log("Unable to reconnect socket automatically!");
+                    this.pingWorker.postMessage({ method: 'clearPingInterval' });
                     return;
                 }
                 if (this.socketState == "disconnected" || this.socketState == "fail_registration") {
@@ -457,7 +458,7 @@ class Client extends events_1.EventEmitter {
                         this.reconnectCount.push((new Date()).getTime());
                     }
                     else {
-                        console.log("Not reconnecting socket as time is less then 5 seconds!");
+                        console.log("Not reconnecting socket as time is less then 3 seconds!");
                     }
                 }
             }, 2000);
@@ -1696,6 +1697,7 @@ class Client extends events_1.EventEmitter {
                                     {
                                         data.interval =  5000;
                                     }
+                                    clearPingInterval();
                                     startPingInterval(data.interval);
                                 }
                                 else if(method === 'clearPingInterval')
@@ -20021,6 +20023,7 @@ class Broadcast extends events_1.EventEmitter {
                                     {
                                         data.interval =  5000;
                                     }
+                                    clearPingInterval();
                                     startPingInterval(data.interval);
                                 }
                                 else if(method === 'clearPingInterval')
