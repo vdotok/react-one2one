@@ -451,15 +451,15 @@ class Client extends events_1.EventEmitter {
                 if (this.socketState == "disconnected" || this.socketState == "fail_registration") {
                     let currentDate = (new Date()).getTime();
                     let seconds = this.reconnectCount && this.reconnectCount.length ? (Math.abs((currentDate - this.reconnectCount[this.reconnectCount.length - 1])) / 1000) : 0;
-                    if (seconds >= 3) {
+                    if (seconds === 0 || seconds >= 3) {
                         this.Connect(mediaServer, true);
+                        this.reconnectCount.push((new Date()).getTime());
                     }
                     else {
                         console.log("Not reconnecting socket as time is less then 5 seconds!");
                     }
-                    this.reconnectCount.push((new Date()).getTime());
                 }
-            }, 1500);
+            }, 2000);
         };
         webSocketConnetion.onopen = (res) => {
             if (this.socketCloseCheck) {
