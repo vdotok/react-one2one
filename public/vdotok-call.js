@@ -449,8 +449,9 @@ class Client extends events_1.EventEmitter {
                     return;
                 }
                 if (this.socketState == "disconnected" || this.socketState == "fail_registration") {
-                    let seconds = this.reconnectCount && this.reconnectCount.length ? Math.abs((((new Date()).getTime()) - this.reconnectCount[this.reconnectCount.length - 1]) / 1000) : 0;
-                    if (seconds > 5) {
+                    let currentDate = (new Date()).getTime();
+                    let seconds = this.reconnectCount && this.reconnectCount.length ? (Math.abs((currentDate - this.reconnectCount[this.reconnectCount.length - 1])) / 1000) : 0;
+                    if (seconds >= 3) {
                         this.Connect(mediaServer, true);
                     }
                     else {
