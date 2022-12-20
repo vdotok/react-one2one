@@ -1280,8 +1280,8 @@ class Client extends events_1.EventEmitter {
         if (re_invite && ref_id) {
             callRequest.requestType = 're_invite';
             callRequest.referenceID = ref_id;
-            delete callRequest['from'];
-            delete callRequest['to'];
+            callRequest.deleteKey('from');
+            callRequest.deleteKey('to');
         }
         else {
             callRequest.requestType = 'session_invite';
@@ -2889,6 +2889,11 @@ class CallRequestModel {
     }
     custon_field(field, value) {
         this.ReqPacket[field] = value;
+    }
+    deleteKey(key) {
+        if (this.ReqPacket[key]) {
+            delete this.ReqPacket[key];
+        }
     }
     /**
      * @method for sending a call request
