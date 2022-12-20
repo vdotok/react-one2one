@@ -443,13 +443,13 @@ class Client extends events_1.EventEmitter {
             }
             this.socketCloseCheck = setInterval(() => {
                 console.log("Auto reconnecting..... count -> ", this.reconnectCount.length);
-                if (this.reconnectCount.length > 3) {
+                if (this.reconnectCount.length > 5) {
                     clearInterval(this.socketCloseCheck);
                     console.log("Unable to reconnect socket automatically!");
                     return;
                 }
                 if (this.socketState == "disconnected" || this.socketState == "fail_registration") {
-                    let seconds = this.reconnectCount ? Math.abs((((new Date()).getTime()) - this.reconnectCount[this.reconnectCount.length - 1]) / 1000) : 0;
+                    let seconds = this.reconnectCount && this.reconnectCount.length ? Math.abs((((new Date()).getTime()) - this.reconnectCount[this.reconnectCount.length - 1]) / 1000) : 0;
                     if (seconds > 5) {
                         this.Connect(mediaServer, true);
                     }
