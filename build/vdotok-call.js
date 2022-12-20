@@ -1280,8 +1280,8 @@ class Client extends events_1.EventEmitter {
         if (re_invite && ref_id) {
             callRequest.requestType = 're_invite';
             callRequest.referenceID = ref_id;
-            delete callRequest.from;
-            delete callRequest.to;
+            delete callRequest['from'];
+            delete callRequest['to'];
         }
         else {
             callRequest.requestType = 'session_invite';
