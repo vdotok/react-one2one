@@ -913,12 +913,14 @@ class Client extends events_1.EventEmitter {
             uUID = this.UUIDSessions[from];
         }
         let response = {
-            "type": "request",
+            "type": "response",
             "requestType": "session_invite",
             "sdpOffer": answerSdp,
             "requestID": new Date().getTime().toString(),
             "sessionUUID": uUID,
             "responseCode": 200,
+            "mcToken": this.mcToken,
+            "referenceID": this.currentUser,
             "responseMessage": "accepted"
         };
         if (isPeer) {
@@ -1310,6 +1312,7 @@ class Client extends events_1.EventEmitter {
         callRequest.isPeer = params.isPeer; //For peer to peer call
         callRequest.sdpOffer = offerSdp;
         callRequest.media_type = media_type;
+        callRequest.type = 'request';
         if (params.data && Object.keys(params.data).length) {
             callRequest.data = params.data;
         }
