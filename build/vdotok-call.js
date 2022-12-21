@@ -1,5 +1,5 @@
 /*!
- *
+ * 
  *  VidTok Call version 0.17.1
  */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -369,6 +369,9 @@ class Client extends events_1.EventEmitter {
                 case 're_invite':
                     this.SessionInvite(messageData);
                     break;
+                case 'p2p_reInvite':
+                    this.PeerToPeerReInvite(messageData);
+                    break;
                 case 'session_cancel':
                     this.SessionCancel(messageData);
                     break;
@@ -453,7 +456,7 @@ class Client extends events_1.EventEmitter {
                 if (this.socketState == "disconnected" || this.socketState == "fail_registration") {
                     let currentDate = (new Date()).getTime();
                     let seconds = this.reconnectCount && this.reconnectCount.length ? (Math.abs((currentDate - this.reconnectCount[this.reconnectCount.length - 1])) / 1000) : 0;
-                    console.log("current difference in seconds ->", seconds, "current date -> ", currentDate, "reconnect history -> ", this.reconnectCount)
+                    //console.log("current difference in seconds ->", seconds, "current date -> ", currentDate, "reconnect history -> ", this.reconnectCount)
                     if (seconds === 0 || seconds >= 3) {
                         this.Connect(mediaServer, true);
                         this.reconnectCount.push((new Date()).getTime());
@@ -494,41 +497,67 @@ class Client extends events_1.EventEmitter {
         let socket = this.ws;
         return socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING ? true : false;
     }
-    autoReconnectCall(uUID) {
-        if (this.sessionInfo[uUID] && this.sessionInfo[uUID].currentCallParams) {
-            if (this.sessionInfo[uUID].currentCallParams.videoType === 'screen') {
+    autoReconnectCall(uUID, params = null) {
+        params = params || (this.sessionInfo[uUID] && this.sessionInfo[uUID].currentCallParams ? this.sessionInfo[uUID].currentCallParams : null);
+        if (params) {
+            if (params.videoType === 'screen' && this.localVideos[uUID]) {
                 this.localVideos[uUID].srcObject.getAudioTracks()[0].stop();
             }
-            this.sessionInfo[uUID].currentCallParams.video = this.videoStatus[uUID];
-            this.sessionInfo[uUID].currentCallParams.audio = this.audioStatus[uUID];
-            this.sessionInfo[uUID].currentCallParams.re_invite = 1;
-            this.sessionInfo[uUID].currentCallParams.ref_id = this.currentUser;
-            this.sessionInfo[uUID].currentCallParams.sessionUUID = uUID;
-            if (this.sessionInfo[uUID] && this.sessionInfo[uUID].call_type === "one_to_many") {
-                return this.PulicBroadCast(this.sessionInfo[uUID].currentCallParams);
+            params.video = this.videoStatus[uUID] || params.video;
+            params.audio = this.audioStatus[uUID] || params.audio;
+            params.re_invite = 1;
+            params.ref_id = this.currentUser || params.ref_id;
+            params.sessionUUID = uUID;
+            params.isPeer = this.sessionInfo[uUID] ? this.sessionInfo[uUID].isPeer : params.isPeer;
+            params.call_type = this.sessionInfo[uUID] ? this.sessionInfo[uUID].call_type : params.call_type;
+            params.data = params.data || {};
+            if (params.call_type === 'one_to_many') {
+                return this.PulicBroadCast(params);
             }
-            else if (this.sessionInfo[uUID] && ["audio", "video", "one_to_one"].includes(this.sessionInfo[uUID].call_type)) {
-                if (this.sessionInfo[uUID].isPeer) {
+            else if (["audio", "video", "one_to_one"].includes(params.call_type)) {
+                if (params.isPeer) {
                     console.log("Peer to Peer call");
-                    this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                        let params = this.sessionInfo[uUID].currentCallParams;
-                        this.onOfferCall(error, offerSdp, this.mediaType, uUID, (params && params.data ? params.data : {}), params.with_ai, params.re_invite, params.ref_id);
-                        console.log("Call autoConnected successfully", uUID);
-                    });
-                    //this.webRtcPeers[uUID].peerConnection.restartIce();
+                    if (this.webRtcPeers[uUID]) {
+                        this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
+                            this.onOfferCall(error, offerSdp, this.mediaType, uUID, params);
+                            console.log("Call autoConnected successfully", uUID);
+                        });
+                    }
+                    else {
+                        console.error("create peer connection to generate offer");
+                        //Todo create peer connection to generate offer
+                    }
                 }
                 else {
-                    console.log("Non peer call, this.Call is called with params", this.sessionInfo[uUID].currentCallParams);
-                    return this.Call(this.sessionInfo[uUID].currentCallParams);
+                    console.log("Non peer call, this.Call is called with params", params);
+                    return this.Call(params);
                 }
             }
             else {
                 //TODO handle other call types
-                return { message: "Auto reconnect logic not available for call type -> " + this.sessionInfo[uUID].call_type, status: false };
+                return { message: "Auto reconnect logic not available for call type -> " + params.call_type, status: false };
             }
         }
         else {
             return { message: "Unable to auto reconnect call, Session Info not available for this session -> " + uUID, status: false };
+        }
+    }
+    PeerToPeerReInvite(messageData) {
+        if (messageData.sdp_type === "sdpAnswer") {
+            console.log("Peer to Peer call is connected successfully!");
+            return;
+        }
+        let uUID = messageData.sessionUUID;
+        //TODO create peerConnection if not exist
+        if (messageData.call_type === "one_to_one" && this.webRtcPeers[uUID]) {
+            this.webRtcPeers[uUID].processOffer(messageData.sdp ? messageData.sdp : messageData.sdpOffer, (error, answerSdp) => {
+                if (error) {
+                    EventHandler_1.default.SessionSDP(error, this);
+                    return console.error(error);
+                }
+                this.onOfferIncomingCall(error, answerSdp, null, uUID, messageData.isPeer);
+                return uUID;
+            });
         }
     }
     ///////////////////////////////////////////////
@@ -548,7 +577,8 @@ class Client extends events_1.EventEmitter {
             this.mediaType = "video";
             this.to = Array.isArray(params.to) ? params.to : [params.to];
             this.currentFromUser = this.currentUser;
-            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: 1, isInitiator: 1 };
+            params.isPeer = params.isPeer || 1;
+            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: params.isPeer, isInitiator: 1 };
             if (!params.data) {
                 params.data = {};
             }
@@ -573,7 +603,7 @@ class Client extends events_1.EventEmitter {
                     return console.error(error);
                 }
                 this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                    this.onOfferCall(error, offerSdp, this.mediaType, uUID, (params && params.data ? params.data : {}), params.with_ai, params.re_invite, params.ref_id);
+                    this.onOfferCall(error, offerSdp, this.mediaType, uUID, params);
                     resolve(uUID);
                 });
             });
@@ -612,7 +642,7 @@ class Client extends events_1.EventEmitter {
                     return console.error(error);
                 }
                 this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                    this.onOfferCall(error, offerSdp, "audio", uUID, (params && params.data ? params.data : {}), params.with_ai);
+                    this.onOfferCall(error, offerSdp, "audio", uUID, params);
                     resolve(uUID);
                 });
             });
@@ -868,7 +898,7 @@ class Client extends events_1.EventEmitter {
         };
         this.SendPacket(response);
     }
-    onOfferIncomingCall(error, offerSdp, from, uUID = null) {
+    onOfferIncomingCall(error, answerSdp, from, uUID = null, isPeer = 0) {
         if (error) {
             EventHandler_1.default.OnOfferIncomingCall(error, this);
             return console.error("Error generating the offer");
@@ -879,18 +909,25 @@ class Client extends events_1.EventEmitter {
         // 	callResponse : 'accept',
         // 	sdpOffer : offerSdp
         // };
-        if (!uUID) {
+        if (!uUID && from) {
             uUID = this.UUIDSessions[from];
         }
         let response = {
             "type": "request",
             "requestType": "session_invite",
-            "sdpOffer": offerSdp,
+            "sdpOffer": answerSdp,
             "requestID": new Date().getTime().toString(),
             "sessionUUID": uUID,
             "responseCode": 200,
             "responseMessage": "accepted"
         };
+        if (isPeer) {
+            delete response.sdpOffer;
+            response.sdp = answerSdp;
+            response.sdp_type = 'sdpAnswer';
+            response.requestType = 'p2p_reInvite';
+            response.type = 'response';
+        }
         console.log("===OnOffering Answer", response);
         this.SendPacket(response);
         this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, {});
@@ -1257,13 +1294,10 @@ class Client extends events_1.EventEmitter {
      * @param offerSdp
      * @param media_type
      * @param uUID
-     * @param data
-     * @param with_ai
-     * @param re_invite
-     * @param ref_id
+     * @param params
      * @returns
      */
-    onOfferCall(error, offerSdp, media_type, uUID, data = {}, with_ai = false, re_invite = false, ref_id = null) {
+    onOfferCall(error, offerSdp, media_type, uUID, params) {
         if (error) {
             EventHandler_1.default.OnOfferIncomingCall(error, this);
             return console.error('Error generating the call offer ', error);
@@ -1274,25 +1308,30 @@ class Client extends events_1.EventEmitter {
         callRequest.requestID = uUID;
         callRequest.sessionUUID = uUID;
         callRequest.mcToken = this.McToken;
-        callRequest.isPeer = 1; //For peer to peer call
+        callRequest.isPeer = params.isPeer; //For peer to peer call
         callRequest.sdpOffer = offerSdp;
         callRequest.media_type = media_type;
-        if (data && Object.keys(data).length) {
-            callRequest.data = data;
+        if (params.data && Object.keys(params.data).length) {
+            callRequest.data = params.data;
         }
         else {
             callRequest.data = {};
         }
-        if (with_ai) {
+        if (params.with_ai) {
             callRequest.call_type = "one_to_one_with_ai";
         }
         else {
             callRequest.call_type = "one_to_one";
         }
-        if (re_invite && ref_id) {
+        if (params.re_invite && params.ref_id) {
+            callRequest.referenceID = params.ref_id;
             callRequest.requestType = 're_invite';
-            callRequest.referenceID = ref_id;
-            if (!callRequest.isPeer) {
+            if (callRequest.isPeer) {
+                callRequest.requestType = 'p2p_reInvite';
+                callRequest.sdp = offerSdp;
+                callRequest.sdp_type = "sdpOffer";
+            }
+            else {
                 callRequest.deleteKey('from');
                 callRequest.deleteKey('to');
             }
@@ -2865,6 +2904,18 @@ class CallRequestModel {
     get sdpOffer() {
         return this.ReqPacket.sdpOffer;
     }
+    set sdp(sdp) {
+        this.ReqPacket.sdp = sdp;
+    }
+    get sdp() {
+        return this.ReqPacket.sdp;
+    }
+    set sdp_type(sdp_type) {
+        this.ReqPacket.sdp_type = sdp_type;
+    }
+    get sdp_type() {
+        return this.ReqPacket.sdp_type;
+    }
     set call_type(type) {
         this.ReqPacket.call_type = type;
     }
@@ -3667,9 +3718,9 @@ exports.default = ManyToManyClass;
 /**
  * This module contains a set of reusable components that have been found useful
  * during the development of the WebRTC applications with Kurento.
- *
+ * 
  * @module kurentoUtils
- *
+ * 
  * @copyright 2014 Kurento (http://kurento.org/)
  * @license ALv2
  */
@@ -4841,7 +4892,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment.
+   Supports browser & node.js environment. 
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////
@@ -6163,7 +6214,7 @@ WildEmitter.mixin(WildEmitter);
 ;(function(isNode) {
 
 	/**
-	 * Merge one or more objects
+	 * Merge one or more objects 
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -6176,7 +6227,7 @@ WildEmitter.mixin(WildEmitter);
 	}, publicName = 'merge';
 
 	/**
-	 * Merge two or more objects recursively
+	 * Merge two or more objects recursively 
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -8696,7 +8747,7 @@ class ScreenSharingMobile {
             // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
             // @ts-ignore
             // eslint-disable-next-line @typescript-eslint/no-this-alias
-            const context = this,
+            const context = this, 
             // eslint-disable-next-line prefer-rest-params
             args = arguments;
             const later = function () {
@@ -8735,7 +8786,7 @@ class ScreenSharingMobile {
                 async : true, // setting it to false may slow the generation a bit down
                 allowTaint : true,
                 foreignObjectRendering : true,*!/
-
+    
           imageTimeout: 800, // this further delays loading, however this solved a no images in captured screenshot issue
           logging: false,
         });*/
@@ -15761,7 +15812,7 @@ ScreenSharingMobile.onceAutoScrollDone = false;
                         case 4:
                             _i++;
                             return [3 /*break*/, 2];
-                        case 5:
+                        case 5: 
                         // 3. For all its in-flow, non-positioned, block-level descendants in tree order:
                         return [4 /*yield*/, this.renderNodeContent(stack.element)];
                         case 6:
@@ -17391,7 +17442,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment.
+   Supports browser & node.js environment. 
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////
