@@ -926,7 +926,6 @@ class Client extends events_1.EventEmitter {
             response.sdp = answerSdp;
             response.sdp_type = 'sdpAnswer';
             response.requestType = 'p2p_reInvite';
-            response.type = 'response';
         }
         console.log("===OnOffering Answer", response);
         this.SendPacket(response);
