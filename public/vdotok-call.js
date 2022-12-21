@@ -521,7 +521,7 @@ class Client extends events_1.EventEmitter {
                         this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
                             this.onOfferCall(error, offerSdp, this.mediaType, uUID, params);
                             console.log("Call autoConnected successfully", uUID);
-                        });
+                        }, { iceRestart: true });
                     }
                     else {
                         console.error("create peer connection to generate offer");
@@ -17090,7 +17090,7 @@ class WebRtcPeer extends events_1.EventEmitter {
         callback = (callback || this.noop).bind(this);
         this.addIceCandidateInternal(candidate, callback);
     }
-    generateOffer(callback) {
+    generateOffer(callback, options = {}) {
         callback = callback.bind(this);
         if (this.mode === "recvonly") {
             /* Add reception tracks on the RTCPeerConnection. Send tracks are
@@ -17133,7 +17133,7 @@ class WebRtcPeer extends events_1.EventEmitter {
             });
         }
         this.peerConnection
-            .createOffer()
+            .createOffer(options)
             .then((offer) => {
             logger.debug("Created SDP offer");
             offer = this.mangleSdpToAddSimulcast(offer);
