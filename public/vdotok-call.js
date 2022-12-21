@@ -2496,6 +2496,10 @@ class EventHandlerService {
                     }
                     break;
                 default:
+                    if (res.responseCode === 400 && res.responseMessage == "bad request") {
+                        instance.emit("call", { type: "BAD_REQUEST", message: "Please check your last RPC it is not correct!", to: instance.to, call_typ: callType, uuid: res.sessionUUID, data: res.data });
+                        return;
+                    }
                     if (callType == "one_to_one" || callType == "one_to_one_with_ai")
                         instance.DisposeWebrtc(true);
                     instance.emit("call", { type: "CALL_REJECTED", message: "Receiver has rejected the call", to: instance.to, call_typ: callType, uuid: res.sessionUUID, data: res.data });
