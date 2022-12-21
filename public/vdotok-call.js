@@ -1306,7 +1306,7 @@ class Client extends events_1.EventEmitter {
         let callRequest = new CallRequestModel_1.default();
         callRequest.from = this.currentUser;
         callRequest.to = this.to;
-        callRequest.requestID = uUID;
+        callRequest.requestID = new Date().getTime().toString();
         callRequest.sessionUUID = uUID;
         callRequest.mcToken = this.McToken;
         callRequest.isPeer = params.isPeer; //For peer to peer call
@@ -1333,10 +1333,8 @@ class Client extends events_1.EventEmitter {
                 callRequest.sdp = offerSdp;
                 callRequest.sdp_type = "sdpOffer";
             }
-            else {
-                callRequest.deleteKey('from');
-                callRequest.deleteKey('to');
-            }
+            callRequest.deleteKey('from');
+            callRequest.deleteKey('to');
         }
         else {
             callRequest.requestType = 'session_invite';
