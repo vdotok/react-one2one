@@ -75,6 +75,7 @@ function CallContent() {
       .catch((err) => {
           console.log("## VideoCall Err", err);
           alert(err.error ? err.error.message : err.message);
+          callDispatch({ type: "RESET_CALL_STATE" });
       });
   };
 
