@@ -35,6 +35,7 @@ export const Container = styled.div`
         /* background-color: gold; */
         max-width: 75%;
         margin: auto;
+        max-height: 100%;
       }
     }
     .video {
