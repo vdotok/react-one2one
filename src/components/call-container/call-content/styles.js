@@ -33,6 +33,8 @@ export const Container = styled.div`
       .remote_video {
         display: ${(props) => (props.videoStream ? "block" : "none")};
         /* background-color: gold; */
+        max-width: 75%;
+        margin: auto;
       }
     }
     .video {
