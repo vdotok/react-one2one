@@ -77,6 +77,7 @@ function CallFooter() {
 
   const endCall = () => {
     vdotokClient.EndCall();
+    callDispatch({ type: "RESET_CALL_STATE" });
   };
 
   console.log("## call footer", { callType });
