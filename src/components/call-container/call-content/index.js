@@ -178,7 +178,7 @@ function CallContent() {
       <div className="inner_container">
         <div className="remote_video_container">
           {showRemoteAudioStreamIcon}
-          <video id="remoteVideo" className="video remote_video" autoPlay>
+          <video id="remoteVideo" style="max-width: 75%;margin: auto;" className="video remote_video" autoPlay>
             <source type="video/mp4" />
           </video>
           {showRemoteVideoStreamIcon}
