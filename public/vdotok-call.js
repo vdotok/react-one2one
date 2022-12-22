@@ -592,6 +592,7 @@ class Client extends events_1.EventEmitter {
                 }
             }
             catch (e) {
+                this.onErrorHandler();
                 return rejects({ status: false, error: e });
             }
             if (options.localVideo) {
@@ -600,6 +601,7 @@ class Client extends events_1.EventEmitter {
             this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
                 if (error) {
                     rejects(error);
+                    this.onErrorHandler();
                     return console.error(error);
                 }
                 this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
@@ -639,6 +641,7 @@ class Client extends events_1.EventEmitter {
             this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
                 if (error) {
                     rejects(error);
+                    this.onErrorHandler();
                     return console.error(error);
                 }
                 this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
@@ -827,6 +830,7 @@ class Client extends events_1.EventEmitter {
                 }
             }
             catch (e) {
+                this.onErrorHandler();
                 return rejects({ status: false, error: e });
             }
             if (options.localVideo) {
@@ -836,6 +840,7 @@ class Client extends events_1.EventEmitter {
                 this.sessionInfo[uUID].currentCallParams = params;
                 this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
                     if (error) {
+                        this.onErrorHandler();
                         rejects(error);
                     }
                     if (this.sessionInfo[uUID] && this.sessionInfo[uUID].incomingCallData && this.sessionInfo[uUID].incomingCallData.isPeer) {
@@ -1085,6 +1090,7 @@ class Client extends events_1.EventEmitter {
             this.sendStateRPC({}, -1, 0, 'session_init', { to: params.to, from: this.currentFromUser, media_type: (!params.video ? 'audio' : 'video'), session_type: "call", call_type: "one_to_one" });
             let initInterval = setInterval(() => {
                 if (this.turnConfigs && this.turnConfigs.receiver_status && !this.turnConfigs.receiver_status.status) {
+                    this.onErrorHandler();
                     rejects({ status: false, message: "User is offline!" });
                 }
                 if (this.turnConfigs) {
@@ -1201,10 +1207,12 @@ class Client extends events_1.EventEmitter {
             try {
                 options = await this.createOptions(params);
                 if (options && !options.status) {
+                    this.onErrorHandler();
                     rejects(options);
                 }
             }
             catch (e) {
+                this.onErrorHandler();
                 return rejects({ status: false, error: e });
             }
             if (options.localVideo) {
@@ -1221,6 +1229,11 @@ class Client extends events_1.EventEmitter {
                 });
             });
         });
+    }
+    onErrorHandler() {
+        if (this.streamHelper) {
+            this.streamHelper.removeAllStreams();
+        }
     }
     onOfferOneToManyCall(error, offerSdp, uUID, assUUID, isPublic, session_type, re_invite = 0, ref_id = 0, isRecord = 0) {
         if (error) {
