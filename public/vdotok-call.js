@@ -200,6 +200,13 @@ class Client extends events_1.EventEmitter {
         this.stunServer = _Credentials.stunServer;
         this.Authentication(_Credentials);
         window.addEventListener('online', this.onOnline.bind(this));
+        setInterval(() => {
+            for (var uUID in this.webRtcPeers) {
+                if (this.webRtcPeers.hasOwnProperty(uUID)) {
+                    console.log(this.webRtcPeers[uUID].peerConnection.connectionState);
+                }
+            }
+        }, 3000);
     }
     set McToken(token) {
         this.mcToken = token;
@@ -228,12 +235,10 @@ class Client extends events_1.EventEmitter {
         }
     }
     async onOnline() {
-        /*window.removeEventListener('online', this.onOnline);
-        this.socketCloseCheck = setInterval(()=>{
-            //this.Connect(this.mediaServer, true);
-        },5000)
-        window.addEventListener('offline', this.onOffline);*/
         this.reconnectCount = [];
+        this.afterOnlineProcess();
+    }
+    afterOnlineProcess() {
         let socketCheckInterval = setInterval(async () => {
             if (this.socketState === "registered") {
                 clearInterval(socketCheckInterval);
@@ -250,10 +255,6 @@ class Client extends events_1.EventEmitter {
                 console.log("Socket is not registered yet! Current socket state -> ", this.socketState);
             }
         }, 1500);
-    }
-    onOffline() {
-        window.removeEventListener('offline', this.onOffline);
-        window.addEventListener("online", this.onOnline);
     }
     Connect(mediaServer, selfReconnect = false) {
         this.socketState = "connecting";
@@ -275,7 +276,7 @@ class Client extends events_1.EventEmitter {
                         RegisterEventHandler_1.default.SetRegisterResponse(messageData, this);
                     }
                     else {
-                        this.onOnline();
+                        this.afterOnlineProcess(); //check socket state and reconnect all sessions
                     }
                     this.registerPingWorker();
                     break;
