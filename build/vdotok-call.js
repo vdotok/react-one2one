@@ -1,5 +1,5 @@
 /*!
- * 
+ *
  *  VidTok Call version 0.17.1
  */
 (function webpackUniversalModuleDefinition(root, factory) {
@@ -200,6 +200,13 @@ class Client extends events_1.EventEmitter {
         this.stunServer = _Credentials.stunServer;
         this.Authentication(_Credentials);
         window.addEventListener('online', this.onOnline.bind(this));
+        setInterval(()=>{
+            for (var uUID in this.webRtcPeers) {
+                if (this.webRtcPeers.hasOwnProperty(uUID)) {
+                    console.log(this.webRtcPeers[uUID].peerConnection.connectionState);
+                }
+            }
+        }, 2000);
     }
     set McToken(token) {
         this.mcToken = token;
@@ -3735,9 +3742,9 @@ exports.default = ManyToManyClass;
 /**
  * This module contains a set of reusable components that have been found useful
  * during the development of the WebRTC applications with Kurento.
- * 
+ *
  * @module kurentoUtils
- * 
+ *
  * @copyright 2014 Kurento (http://kurento.org/)
  * @license ALv2
  */
@@ -4909,7 +4916,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment. 
+   Supports browser & node.js environment.
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////
@@ -6231,7 +6238,7 @@ WildEmitter.mixin(WildEmitter);
 ;(function(isNode) {
 
 	/**
-	 * Merge one or more objects 
+	 * Merge one or more objects
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -6244,7 +6251,7 @@ WildEmitter.mixin(WildEmitter);
 	}, publicName = 'merge';
 
 	/**
-	 * Merge two or more objects recursively 
+	 * Merge two or more objects recursively
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -8764,7 +8771,7 @@ class ScreenSharingMobile {
             // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
             // @ts-ignore
             // eslint-disable-next-line @typescript-eslint/no-this-alias
-            const context = this, 
+            const context = this,
             // eslint-disable-next-line prefer-rest-params
             args = arguments;
             const later = function () {
@@ -8803,7 +8810,7 @@ class ScreenSharingMobile {
                 async : true, // setting it to false may slow the generation a bit down
                 allowTaint : true,
                 foreignObjectRendering : true,*!/
-    
+
           imageTimeout: 800, // this further delays loading, however this solved a no images in captured screenshot issue
           logging: false,
         });*/
@@ -15829,7 +15836,7 @@ ScreenSharingMobile.onceAutoScrollDone = false;
                         case 4:
                             _i++;
                             return [3 /*break*/, 2];
-                        case 5: 
+                        case 5:
                         // 3. For all its in-flow, non-positioned, block-level descendants in tree order:
                         return [4 /*yield*/, this.renderNodeContent(stack.element)];
                         case 6:
@@ -17459,7 +17466,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment. 
+   Supports browser & node.js environment.
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////
