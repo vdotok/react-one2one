@@ -525,8 +525,8 @@ class Client extends events_1.EventEmitter {
                         }, { iceRestart: true });
                     }
                     else {
-                        console.error("create peer connection to generate offer");
-                        //Todo create peer connection to generate offer
+                        console.error("creating peer connection to generate offer");
+                        return this.Call(params);
                     }
                 }
                 else {
@@ -549,16 +549,33 @@ class Client extends events_1.EventEmitter {
             return;
         }
         let uUID = messageData.sessionUUID;
-        //TODO create peerConnection if not exist
-        if (messageData.call_type === "one_to_one" && this.webRtcPeers[uUID]) {
-            this.webRtcPeers[uUID].processOffer(messageData.sdp ? messageData.sdp : messageData.sdpOffer, (error, answerSdp) => {
-                if (error) {
-                    EventHandler_1.default.SessionSDP(error, this);
-                    return console.error(error);
-                }
-                this.onOfferIncomingCall(error, answerSdp, null, uUID, messageData.isPeer);
-                return uUID;
-            });
+        let sdp = messageData.sdp ? messageData.sdp : messageData.sdpOffer;
+        if (this.sessionInfo && this.sessionInfo[uUID] && this.sessionInfo[uUID].lastReinviteTime && messageData.timestamp < this.sessionInfo[uUID].lastReinviteTime) {
+            console.log("Conflict! No need to process Answer, As this peer just send a latest reInvite and answer will be processed on other peer side");
+            return;
+        }
+        if (messageData.call_type === "one_to_one") {
+            if (this.webRtcPeers[uUID]) {
+                this.webRtcPeers[uUID].processOffer(sdp, (error, answerSdp) => {
+                    if (error) {
+                        EventHandler_1.default.SessionSDP(error, this);
+                        return console.error(error);
+                    }
+                    this.onOfferIncomingCall(error, answerSdp, null, uUID, messageData.isPeer);
+                    return uUID;
+                });
+            }
+            else {
+                this.sessionInfo[uUID] = {
+                    incomingCallData: { isPeer: 1, callerSDP: sdp },
+                    isPeer: 1,
+                    callerSDP: sdp,
+                    sessionUUID: uUID,
+                    isInitiator: 0,
+                    isSDPAnswerSend: 0,
+                };
+                //TODO create peerConnection if not exist
+            }
         }
     }
     ///////////////////////////////////////////////
@@ -844,9 +861,11 @@ class Client extends events_1.EventEmitter {
                         this.onErrorHandler();
                         rejects(error);
                     }
-                    if (this.sessionInfo[uUID] && this.sessionInfo[uUID].incomingCallData && this.sessionInfo[uUID].incomingCallData.isPeer) {
+                    let isPeer = params.isPeer || (this.sessionInfo[uUID] && this.sessionInfo[uUID].incomingCallData ? this.sessionInfo[uUID].incomingCallData.isPeer : 0);
+                    let sdp = params.sdp || (this.sessionInfo[uUID] && this.sessionInfo[uUID].incomingCallData ? this.sessionInfo[uUID].incomingCallData.callerSDP : "");
+                    if (isPeer) {
                         //This is peer to peer call
-                        this.webRtcPeers[uUID].processOffer(this.sessionInfo[uUID].incomingCallData.callerSDP, (error, answerSdp) => {
+                        this.webRtcPeers[uUID].processOffer(sdp, (error, answerSdp) => {
                             if (error) {
                                 EventHandler_1.default.SessionSDP(error, this);
                                 return console.error(error);
@@ -1254,8 +1273,8 @@ class Client extends events_1.EventEmitter {
         callRequest.session_type = session_type;
         //////////////////////////////////////////
         ///////for public url/group
-        callRequest.custon_field("broadcastType", isPublic);
-        callRequest.custon_field("associatedSessionUUID", assUUID);
+        callRequest.custom_field("broadcastType", isPublic);
+        callRequest.custom_field("associatedSessionUUID", assUUID);
         if (re_invite && ref_id) {
             callRequest.requestType = 're_invite';
             callRequest.referenceID = ref_id;
@@ -1346,7 +1365,9 @@ class Client extends events_1.EventEmitter {
                 callRequest.requestType = 'p2p_reInvite';
                 callRequest.sdp = offerSdp;
                 callRequest.sdp_type = "sdpOffer";
+                this.sessionInfo[uUID].lastReinviteTime = callRequest.timestamp = new Date().getTime().toString();
             }
+            callRequest.custom_field("fromUser", this.currentUser);
             callRequest.deleteKey('from');
             callRequest.deleteKey('to');
         }
@@ -2874,6 +2895,12 @@ class CallRequestModel {
     get from() {
         return this.ReqPacket.from;
     }
+    set timestamp(timestamp) {
+        this.ReqPacket.timestamp = timestamp;
+    }
+    get timestamp() {
+        return this.ReqPacket.timestamp;
+    }
     set to(to) {
         this.ReqPacket.to = to;
     }
@@ -2970,7 +2997,7 @@ class CallRequestModel {
     get isPeer() {
         return this.ReqPacket.isPeer;
     }
-    custon_field(field, value) {
+    custom_field(field, value) {
         this.ReqPacket[field] = value;
     }
     deleteKey(key) {
@@ -3010,7 +3037,8 @@ exports.default = {
     "sessionUUID": "sgdjkfgskjdgfs6876868",
     "mcToken": "",
     "sdpOffer": "",
-    "data": {}
+    "data": {},
+    "timestamp": "",
 };
 
 
