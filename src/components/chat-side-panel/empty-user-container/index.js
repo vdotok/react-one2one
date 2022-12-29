@@ -33,12 +33,13 @@ const Container = styled.div`
   }
 `;
 
-function EmptyUserContainer() {
+function EmptyUserContainer(props) {
+  const { title, desc } = props;
   return (
     <Container>
       <h1 className="oops_text">Oops!!!</h1>
-      <p className="msg_text">There are no users to display</p>
-      <p className="des_text">Easily create users via the signup page</p>
+      <p className="msg_text">{title}</p>
+      <p className="des_text">{desc}</p>
       {/* <a
         className="signup_anchor"
         href="http://localhost:3000/signup"

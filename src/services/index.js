@@ -12,6 +12,8 @@ export const API_URL = Object.freeze({
   SIGNUP: () => "SignUp",
   LOGIN: () => "Login",
   ALL_USERS: () => "AllUsers",
+  CREATE_GROUP: () => "CreateGroup",
+  ALL_GROUPS: () => "AllGroups",
 });
 
 const API = axiosInstance();

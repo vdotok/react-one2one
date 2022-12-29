@@ -1,6 +1,6 @@
 import React, { useContext, useEffect } from "react";
 import { CallContext } from "context/call";
-import { VdotokClientContext } from "context/vdotok-client";
+import { SDKContext } from "context/sdk-client";
 import styled from "styled-components";
 import GetIcon from "utils/getIcon";
 
@@ -67,7 +67,7 @@ function CallFooter() {
     state: { callType, audio, camera, chat, uuid },
     dispatch: callDispatch,
   } = useContext(CallContext);
-  const { vdotokClient } = useContext(VdotokClientContext);
+  const { vdotokClient } = useContext(SDKContext);
 
   useEffect(() => {
     if (callType === "audio") {

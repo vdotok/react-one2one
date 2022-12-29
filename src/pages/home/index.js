@@ -1,17 +1,20 @@
 import React from "react";
-import Main from "components/main";
-import VdotokClientContextProvider from "context/vdotok-client";
+import SDKContextProvider from "context/sdk-client";
 import UserContextProvider from "context/user";
+import GroupContextProvider from "context/group";
 import CallContextProvider from "context/call";
+import Main from "components/main";
 function Home() {
   return (
-    <VdotokClientContextProvider>
+    <SDKContextProvider>
       <UserContextProvider>
-        <CallContextProvider>
-          <Main></Main>
-        </CallContextProvider>
+        <GroupContextProvider>
+          <CallContextProvider>
+            <Main></Main>
+          </CallContextProvider>
+        </GroupContextProvider>
       </UserContextProvider>
-    </VdotokClientContextProvider>
+    </SDKContextProvider>
   );
 }
 

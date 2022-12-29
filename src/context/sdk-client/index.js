@@ -1,18 +1,18 @@
 import React, { useState, createContext } from "react";
-export const VdotokClientContext = createContext();
+export const SDKContext = createContext();
 
-const VdotokClientContextProvider = (props) => {
+const SDKContextProvider = (props) => {
   const { children } = props;
   const [vdotokClient, setVdotokClient] = useState({});
   const [messageClient, setMessageClient] = useState({});
 
   return (
-    <VdotokClientContext.Provider
+    <SDKContext.Provider
       value={{ vdotokClient, setVdotokClient, messageClient, setMessageClient }}
     >
       {children}
-    </VdotokClientContext.Provider>
+    </SDKContext.Provider>
   );
 };
 
-export default VdotokClientContextProvider;
+export default SDKContextProvider;

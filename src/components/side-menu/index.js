@@ -15,13 +15,15 @@ import {
   Image,
   LogoContainer,
   LogoutPopup,
+
   // Divider,
 } from "./styles";
 import logo from "assets/images/logo.png";
 import avatar from "assets/images/avatar.jpg";
 import { uniqueString } from "utils";
-import { VdotokClientContext } from "context/vdotok-client";
+import { SDKContext } from "context/sdk-client";
 import { CallContext } from "context/call";
+import ImageStatus from "components/image-status";
 
 const chunks = [
   // {
@@ -41,7 +43,7 @@ const chunks = [
 function SideMenu() {
   const navigate = useNavigate();
   const { darkMode, setDarkMode } = useContext(DarkModeContext);
-  const { vdotokClient, setVdotokClient } = useContext(VdotokClientContext);
+  const { vdotokClient, setVdotokClient } = useContext(SDKContext);
   const { state: uuid } = useContext(CallContext);
   console.log({ vdotokClient });
   const [user, setUser] = useLocalStorage("user", {});
@@ -123,7 +125,14 @@ function SideMenu() {
         <ThemeButton onClick={themeHandler}>{GetThemeIcon}</ThemeButton>
         <LogoutMenuContainer active={openMenu}>
           <LogoContainer onClick={() => setOpenMenu(!openMenu)}>
-            <Image src={avatar} alt="profile" />
+            {/* <Image src={avatar} alt="profile" /> */}
+            <ImageStatus
+              src={user.profile_pic}
+              name={user.full_name}
+              showStatus={false}
+              alt="user profile"
+              className="img"
+            />
           </LogoContainer>
           {openMenu ? (
             <LogoutPopup>

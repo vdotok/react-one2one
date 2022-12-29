@@ -111,6 +111,10 @@ export const LogoContainer = styled.div`
   border-radius: 100%;
   overflow: hidden;
   cursor: pointer;
+  .img {
+    height: 36px;
+    width: 36px;
+  }
 `;
 
 export const Image = styled.img`

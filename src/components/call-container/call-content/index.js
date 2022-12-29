@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useMemo } from "react";
 import Video from "assets/background_video.mp4";
 import CallFooter from "../call-footer";
-import { VdotokClientContext } from "context/vdotok-client";
+import { SDKContext } from "context/sdk-client";
 import { UserContext } from "context/user";
 import { CallContext } from "context/call";
 import GetIcon from "utils/getIcon";
@@ -26,7 +26,7 @@ function CallContent() {
     },
     dispatch: callDispatch,
   } = useContext(CallContext);
-  const { vdotokClient } = useContext(VdotokClientContext);
+  const { vdotokClient } = useContext(SDKContext);
   const [user] = useLocalStorage("user", {});
   console.log("## cal res CallContent", {
     uuid,

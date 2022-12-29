@@ -25,9 +25,11 @@ import {
   RiMicOffFill,
   RiQuestionAnswerLine,
   RiCheckLine,
+  RiAddFill,
 } from "react-icons/ri";
 import { BiVideo, BiVideoOff } from "react-icons/bi";
 const Icons = {
+  add: RiAddFill,
   email: RiMailLine,
   user: RiUser2Line,
   groupUser: RiGroupLine,

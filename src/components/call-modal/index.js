@@ -5,7 +5,7 @@ import styled from "styled-components";
 import GetIcon from "utils/getIcon";
 import ImageStatus from "components/image-status";
 import { UserContext } from "context/user";
-import { VdotokClientContext } from "context/vdotok-client";
+import { SDKContext } from "context/sdk-client";
 import { CallContext } from "context/call";
 const Container = styled.div`
   display: flex;
@@ -99,7 +99,7 @@ function CallModal(props) {
     dispatch: callDispatch,
   } = useContext(CallContext);
 
-  const { vdotokClient } = useContext(VdotokClientContext);
+  const { vdotokClient } = useContext(SDKContext);
 
   // useEffect(() => {
   //   if (usersList.length && receivedRes.from) {

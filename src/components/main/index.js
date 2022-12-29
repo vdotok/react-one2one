@@ -1,7 +1,7 @@
 /* eslint-disable */
 import React, { useContext, useEffect, useMemo, useRef } from "react";
 import styled from "styled-components";
-import { VdotokClientContext } from "context/vdotok-client";
+import { SDKContext } from "context/sdk-client";
 import SideMenu from "components/side-menu";
 import ChatSidePanel from "components/chat-side-panel";
 import ChatContainer from "components/chat-container";
@@ -32,7 +32,7 @@ const MainContainer = styled.div`
 
 function Main(props) {
   const { children } = props;
-  const { setVdotokClient, setMessageClient } = useContext(VdotokClientContext);
+  const { setVdotokClient, setMessageClient } = useContext(SDKContext);
   const {
     state: { selectedUser, usersList },
     dispatch: userDispatch,
@@ -196,7 +196,7 @@ function Main(props) {
     let ClientTimeout = setTimeout(() => {
       console.log("** in timeout", { user });
       initializeCallingSDK();
-      initializeMessagingSDK();
+      // initializeMessagingSDK();
     }, 1000);
 
     return () => {
