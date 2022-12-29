@@ -1,7 +1,8 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect } from "react";
 import styled, { css } from "styled-components";
 import ImageStatus from "components/image-status";
 import { UserContext } from "context/user";
+import { useLocalStorage } from "hooks/useLocalStorage";
 
 const Container = styled.div`
   display: flex;
@@ -86,11 +87,16 @@ function UserCard(props) {
   } = props;
 
   const { state, dispatch } = useContext(UserContext);
+  const [currentUser, setCurrentUser] = useLocalStorage("currentUser", {});
   //console.log({ state });
+
   return (
     <Container
       active={state.selectedUser.ref_id === ref_id}
-      onClick={() => dispatch({ type: "SELECT_USER", payload: props.user })}
+      onClick={() => {
+        setCurrentUser(props.user);
+        dispatch({ type: "SELECT_USER", payload: props.user });
+      }}
     >
       <ImageStatus
         style={{ flexShrink: 0 }}

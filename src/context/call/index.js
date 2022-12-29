@@ -13,6 +13,7 @@ const initialState = {
   receivedRes: {},
   uuid: null,
   callMessage: "",
+  reconnectCall: false,
 };
 
 const reducer = (state, action) => {
@@ -61,6 +62,8 @@ const reducer = (state, action) => {
       return { ...state, chat: action.payload };
     case "CALL_MESSAGE":
       return { ...state, callMessage: action.payload };
+    case "RECONEECT_CALL_DATA":
+      return { ...state, ...action.payload };
     default:
       return state;
   }

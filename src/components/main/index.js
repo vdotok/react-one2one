@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useContext, useEffect, useMemo, useRef } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { VdotokClientContext } from "context/vdotok-client";
 import SideMenu from "components/side-menu";
@@ -12,6 +12,7 @@ import EmptyChatSection from "components/empty-chat-section";
 import { UserContext } from "context/user";
 import { CallContext } from "context/call";
 import CallModal from "components/call-modal";
+import useUnload from "hooks/useUnload";
 
 const Container = styled.main`
   display: flex;
@@ -32,19 +33,32 @@ const MainContainer = styled.div`
 
 function Main(props) {
   const { children } = props;
-  const { setVdotokClient } = useContext(VdotokClientContext);
+  const [isReload, setIsReload] = useState(false);
+  const { vdotokClient, setVdotokClient } = useContext(VdotokClientContext);
   const {
     state: { selectedUser, usersList },
     dispatch: userDispatch,
     usersListRef,
   } = useContext(UserContext);
   const {
-    state: { callType, receivedCall },
+    state: {
+      receivedCall,
+      callType,
+      audio,
+      camera,
+      video,
+      uuid,
+      receivedRes,
+      callMessage,
+    },
     dispatch: callDispatch,
   } = useContext(CallContext);
   const [user] = useLocalStorage("user", {});
+  const [presistCallData, setPresistCallData] = useLocalStorage(
+    "presistCallData",
+    {}
+  );
 
-  // const usersListRef = useRef(usersList);
   console.log("$$", { usersList });
 
   const callStatusHandler = (callStatusRes) => {
@@ -147,7 +161,7 @@ function Main(props) {
       case "MISSED_CALL":
       //case "PARTICIPANT_LEFT":
       case "CALL_ENDED":
-      //case "SOCKET_DROPPED":
+        //case "SOCKET_DROPPED":
         return endCallHandler();
       // case "SOCKET_DROPPED"  ndler(response);
       // case "PARTICIPANT_LEFT":
@@ -157,19 +171,45 @@ function Main(props) {
     }
   };
 
+  useUnload((e) => {
+    e.preventDefault();
+    e.returnValue = "";
+    // console.log("hello");
+    setPresistCallData({
+      callType,
+      audio,
+      camera,
+      video,
+      uuid,
+      receivedRes,
+      callMessage,
+      reconnectCall: uuid ? true : false,
+    });
+    // alert("unload");
+  });
+  useEffect(() => {
+    console.log("## RECONEECT_CALL_DATA", { vdotokClient, presistCallData });
+    if (isReload && vdotokClient.projectID && presistCallData.uuid) {
+      callDispatch({ type: "RECONEECT_CALL_DATA", payload: presistCallData });
+    }
+  }, [vdotokClient.projectID, presistCallData.uuid, isReload]);
+
   const initializeSDK = () => {
     let Client = new CVDOTOK.Client({
-        projectID: PROJECT_ID,
+      projectID: PROJECT_ID,
       // host: `${user.media_server_map.protocol}://${user.media_server_map.host}:${user.media_server_map.port}/${user.media_server_map.end_point}`,
-        host: 'wss://r-signalling.vdotok.dev:8443/call',
-        stunServer: user.stun_server_map ? user.stun_server_map.complete_address : ''
+      host: "wss://r-signalling.vdotok.dev:8443/call",
+      stunServer: user.stun_server_map
+        ? user.stun_server_map.complete_address
+        : "",
     });
     Client.on("connected", (res) => {
       console.log("** vdotok SDK connected", { res });
       Client.Register(user.ref_id, user.authorization_token);
     });
     Client.on("register", (res) => {
-      console.log("## register res", { res });
+      console.log("## register res", { res, uuid, presistCallData });
+      setIsReload(true);
     });
     Client.on("call", (res) => {
       console.log("## Call res", { res });

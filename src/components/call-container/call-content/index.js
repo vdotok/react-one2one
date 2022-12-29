@@ -23,6 +23,7 @@ function CallContent() {
       videoStream,
       audioStream,
       callMessage,
+      reconnectCall,
     },
     dispatch: callDispatch,
   } = useContext(CallContext);
@@ -65,6 +66,11 @@ function CallContent() {
       to: [selectedUser.ref_id],
     };
 
+    if (reconnectCall) {
+      params.ref_id = user.ref_id;
+      params.re_invite = 1;
+      params.sessionUUID = uuid
+    }
     console.log("## call params", { video });
     vdotokClient
       .Call(params)
