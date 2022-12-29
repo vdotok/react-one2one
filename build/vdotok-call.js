@@ -499,18 +499,19 @@ class Client extends events_1.EventEmitter {
         return socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING ? true : false;
     }
     autoReconnectCall(uUID, params = null) {
+        var _a, _b, _c, _d;
         params = params || (this.sessionInfo[uUID] && this.sessionInfo[uUID].currentCallParams ? this.sessionInfo[uUID].currentCallParams : null);
         if (params) {
             if (params.videoType === 'screen' && this.localVideos[uUID]) {
                 this.localVideos[uUID].srcObject.getAudioTracks()[0].stop();
             }
-            params.video = this.videoStatus[uUID] || params.video;
-            params.audio = this.audioStatus[uUID] || params.audio;
+            params.video = this.videoStatus[uUID] || ((_a = params.video) !== null && _a !== void 0 ? _a : 1);
+            params.audio = this.audioStatus[uUID] || ((_b = params.audio) !== null && _b !== void 0 ? _b : 1);
             params.re_invite = 1;
             params.ref_id = this.currentUser || params.ref_id;
             params.sessionUUID = uUID;
-            params.isPeer = this.sessionInfo[uUID] ? this.sessionInfo[uUID].isPeer : params.isPeer;
-            params.call_type = this.sessionInfo[uUID] ? this.sessionInfo[uUID].call_type : params.call_type;
+            params.isPeer = this.sessionInfo[uUID] ? this.sessionInfo[uUID].isPeer : ((_c = params.isPeer) !== null && _c !== void 0 ? _c : 1);
+            params.call_type = this.sessionInfo[uUID] ? this.sessionInfo[uUID].call_type : ((_d = params.call_type) !== null && _d !== void 0 ? _d : "one_to_one");
             params.data = params.data || {};
             if (params.call_type === 'one_to_many') {
                 return this.PulicBroadCast(params);
@@ -525,7 +526,7 @@ class Client extends events_1.EventEmitter {
                         }, { iceRestart: true });
                     }
                     else {
-                        console.error("creating peer connection to generate offer");
+                        console.log("creating peer connection to generate offer");
                         return this.Call(params);
                     }
                 }
@@ -545,6 +546,21 @@ class Client extends events_1.EventEmitter {
     }
     PeerToPeerReInvite(messageData) {
         if (messageData.sdp_type === "sdpAnswer") {
+            try {
+                if (this.webRtcPeers[messageData.sessionUUID]) {
+                    if (messageData.sdp) {
+                        this.webRtcPeers[messageData.sessionUUID].processAnswer(messageData.sdp, (error) => {
+                            if (error) {
+                                EventHandler_1.default.SessionSDP(error, this);
+                                return console.error(error);
+                            }
+                        });
+                    }
+                }
+            }
+            catch (e) {
+                console.log(e);
+            }
             console.log("Peer to Peer call is connected successfully!");
             return;
         }
