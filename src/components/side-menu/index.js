@@ -4,18 +4,18 @@ import GetIcon from "utils/getIcon";
 import { useLocalStorage } from "hooks/useLocalStorage";
 import { DarkModeContext } from "context/dark-mode";
 import {
-  Container,
-  Logo,
-  ListContainer,
-  UnorderListContainer,
-  Chunk,
-  Footer,
-  ThemeButton,
-  LogoutMenuContainer,
-  Image,
-  LogoContainer,
-  LogoutPopup,
-  // Divider,
+    Container,
+    Logo,
+    ListContainer,
+    UnorderListContainer,
+    Chunk,
+    Footer,
+    ThemeButton,
+    LogoutMenuContainer,
+    Image,
+    LogoContainer,
+    LogoutPopup, SocketState,
+    // Divider,
 } from "./styles";
 import logo from "assets/images/logo.png";
 import avatar from "assets/images/avatar.jpg";
@@ -123,7 +123,8 @@ function SideMenu() {
         <ThemeButton onClick={themeHandler}>{GetThemeIcon}</ThemeButton>
         <LogoutMenuContainer active={openMenu}>
           <LogoContainer onClick={() => setOpenMenu(!openMenu)}>
-            <Image src={avatar} alt="profile" />
+              <SocketState style={{background : (vdotokClient && vdotokClient.socketState === "registered" ? "green" : (vdotokClient && vdotokClient.socketState === "connecting" ? "yellow" : "red"))}}/>
+            <Image id={"profile"} src={avatar} alt="profile" />
           </LogoContainer>
           {openMenu ? (
             <LogoutPopup>

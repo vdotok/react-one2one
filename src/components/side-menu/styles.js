@@ -159,3 +159,12 @@ export const Divider = styled.hr`
   border-top: 1px solid ${({ theme }) => theme.dropdownDividerColor};
   margin: 5px 0;
 `;
+
+export const SocketState = styled.span`
+    background: red;
+    width: 10px;
+    height: 10px;
+    position: absolute;
+    border-radius: 50%;
+    right: 0;
+`;

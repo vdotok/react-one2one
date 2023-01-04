@@ -76,7 +76,7 @@ function ChatSidePanel() {
   return (
     <>
       <ChatSearchContainer>
-        <h4 className="chat_text">Chats</h4>
+          <h4 className="chat_text">Chats    <span style={{float:'right'}}>{user.full_name}</span></h4>
         {usersList?.length ? (
           <SearchInput
             iconName="search"
