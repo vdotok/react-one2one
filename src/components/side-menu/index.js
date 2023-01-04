@@ -81,7 +81,7 @@ function SideMenu() {
 
   const logoutHandler = () => {
     console.log({ vdotokClient });
-    // vdotokClient.Disconnect();
+    vdotokClient.Disconnect();
     setVdotokClient(null);
     setUser({});
     navigate("/signin", { replace: true });
