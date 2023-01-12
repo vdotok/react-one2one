@@ -185,7 +185,7 @@ function CallContent() {
       <div className="inner_container">
         <div className="remote_video_container">
           {showRemoteAudioStreamIcon}
-          <video id="remoteVideo" className="video remote_video" autoPlay>
+          <video id="remoteVideo" className="video remote_video" autoPlay playsInline={true}>
             <source type="video/mp4" />
           </video>
           {showRemoteVideoStreamIcon}
@@ -193,7 +193,7 @@ function CallContent() {
         </div>
         <div className="local_video_container">
           {showLocalAudioStreamIcon}
-          <video id="localVideo" className="video local_video" autoPlay>
+          <video id="localVideo" className="video local_video" autoPlay playsInline={true}>
             <source type="video/mp4" />
           </video>
           {showLocalVideoStreamIcon}

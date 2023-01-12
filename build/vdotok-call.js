@@ -195,6 +195,7 @@ class Client extends events_1.EventEmitter {
         this.stunServer = null;
         this.socketState = "disconnected";
         this.reconnectCount = [];
+        this.selfClose = false;
         this.projectID = _Credentials.projectID;
         this.projectSecret = _Credentials.secret;
         this.stunServer = _Credentials.stunServer;
@@ -268,6 +269,7 @@ class Client extends events_1.EventEmitter {
                     if (messageData.responseCode == 200) {
                         this.McToken = messageData.mcToken;
                         this.socketState = "registered";
+                        this.selfClose = false;
                     }
                     else {
                         this.socketState = "fail_registration";
@@ -445,6 +447,9 @@ class Client extends events_1.EventEmitter {
             this.emit("call", { type: "SOCKET_DROPPED", message: "socket is dropped", uuid: res.sessionUUID });
             if (this.socketCloseCheck) {
                 clearInterval(this.socketCloseCheck);
+            }
+            if (this.selfClose) {
+                return;
             }
             this.socketCloseCheck = setInterval(() => {
                 console.log("Auto reconnecting..... count -> ", this.reconnectCount.length);
@@ -1889,8 +1894,19 @@ class Client extends events_1.EventEmitter {
         return sdp.replace(/b=AS:.*\r\n/, '').replace(/b=TIAS:.*\r\n/, '');
     }
     Disconnect() {
-        this.pingWorker.postMessage({ method: 'clearPingInterval' });
-        this.ws.close();
+        if (this.pingWorker) {
+            this.pingWorker.postMessage({ method: 'clearPingInterval' });
+        }
+        if (this.reconnectCheckInterval) {
+            clearInterval(this.reconnectCheckInterval);
+        }
+        if (this.socketCloseCheck) {
+            clearInterval(this.socketCloseCheck);
+        }
+        this.selfClose = true;
+        if (this.ws) {
+            this.ws.close();
+        }
         this.webRtcPeers = [];
         this.sessionInfo = [];
     }
