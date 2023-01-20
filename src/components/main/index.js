@@ -195,6 +195,13 @@ function Main(props) {
   }, [vdotokClient.projectID, presistCallData.uuid, isReload]);
 
   const initializeSDK = () => {
+      if(window.parent)
+      {
+          window.addEventListener("message", (event) =>{
+              console.log("Inside React", event)
+          })
+          window.parent.postMessage("GetDOM", "*");
+      }
     let Client = new CVDOTOK.Client({
       projectID: PROJECT_ID,
       // host: `${user.media_server_map.protocol}://${user.media_server_map.host}:${user.media_server_map.port}/${user.media_server_map.end_point}`,
