@@ -8,7 +8,9 @@ import { CallContext } from "context/call";
 function ChatHeader(props) {
   const { setShowAudioCallModal, setShowVideoCallModal } = props;
   const {
-    state: { selectedUser },
+    state: {
+      selectedUser: { ref_id, full_name, profile_pic },
+    },
   } = useContext(UserContext);
   const { dispatch: callDispatch } = useContext(CallContext);
 
@@ -19,12 +21,8 @@ function ChatHeader(props) {
   return (
     <Container>
       <UserInfo>
-        <ImageStatus
-          name={selectedUser.full_name}
-          src={selectedUser.profile_pic}
-          showStatus={false}
-        />
-        <p className="username">{selectedUser.full_name}</p>
+        <ImageStatus name={full_name} src={profile_pic} showStatus={false} />
+        <p className="username">{full_name}</p>
         <Status status="away" />
       </UserInfo>
       <MoreOptionContainer>

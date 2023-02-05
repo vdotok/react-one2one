@@ -10,7 +10,7 @@ const SearchContainer = styled.div`
 `;
 
 function UsersListContainer(props) {
-  const { users } = props;
+  const { groups } = props;
 
   const [value, setValue] = useState("");
 
@@ -18,12 +18,12 @@ function UsersListContainer(props) {
 
   const filterUserList = useMemo(() => {
     if (deferredValue) {
-      return [...users].filter((user) =>
-        lowerCase(user.full_name).includes(lowerCase(deferredValue))
+      return [...groups].filter((user) =>
+        lowerCase(user["participants"][0].full_name).includes(lowerCase(deferredValue))
       );
     }
-    return users;
-  }, [deferredValue, users]);
+    return groups;
+  }, [deferredValue, groups]);
 
   const searchUsers = (event) => {
     const { value } = event.target;
@@ -34,12 +34,12 @@ function UsersListContainer(props) {
     filterUserList,
     deferredValue,
     value,
-    users,
+    groups,
   });
 
   return (
     <>
-      {/* <OnlineUsersList users={filterUserList} /> */}
+      {/* <OnlineUsersList groups={filterUserList} /> */}
       <SearchContainer>
         <SearchInput
           iconName="search"
@@ -51,7 +51,7 @@ function UsersListContainer(props) {
           }}
         />
       </SearchContainer>
-      <AllUserList users={filterUserList} />
+      <AllUserList groups={filterUserList} />
     </>
   );
 }

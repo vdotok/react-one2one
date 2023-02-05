@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import styled from "styled-components";
 import ModalUserCard from "components/create-chat-modal/modal-user-card";
 import { useLocalStorage } from "hooks/useLocalStorage";
 import { createGroup } from "services/group";
+import { GroupContext } from "context/group";
 
 export const Container = styled.div`
   padding: 0 10px;
@@ -65,6 +66,7 @@ export const Container = styled.div`
 
 function ModalAllUserList(props) {
   const { users = [] } = props;
+  const { dispatch: groupDispatch } = useContext(GroupContext);
   const [user] = useLocalStorage("user", {});
   const [selectedUsers, setSelectedUsers] = useState([]);
 
@@ -88,10 +90,17 @@ function ModalAllUserList(props) {
     };
     createGroup(body)
       .then((res) => {
-        console.log({ res });
+        console.log("## createGroup Res", { res });
+        if (res.data.status === 200) {
+          if (!res.data.is_already_created) {
+            groupDispatch({ type: "ADD_NEW_GROUP", payload: res.data.group });
+          }
+        } else {
+          console.log("## createGroup Err else", { err: res.data.message });
+        }
       })
       .catch((err) => {
-        console.log({ err });
+        console.log("## createGroup Err", { err });
       });
   };
 

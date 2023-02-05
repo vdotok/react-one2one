@@ -90,7 +90,11 @@ function CallModal(props) {
   // const [findUser, setFindUser] = useState({});
 
   const {
-    state: { selectedUser, usersList, getUser },
+    state: {
+      selectedUser: { ref_id, full_name, profile_pic },
+      usersList,
+      getUser,
+    },
     dispatch: userDispatch,
   } = useContext(UserContext);
 
@@ -155,13 +159,13 @@ function CallModal(props) {
           <ImageStatus
             src={
               callType === "receiver"
-                ? getUser.profile_pic
-                : selectedUser.profile_pic
+                ? getUser["participants"][0].profile_pic
+                : profile_pic
             }
             name={
               callType === "receiver"
-                ? getUser.full_name
-                : selectedUser.full_name
+                ? getUser["participants"][0].full_name
+                : full_name
             }
             showStatus={false}
             alt="user profile"
@@ -170,12 +174,12 @@ function CallModal(props) {
         </div>
         <p className="username_text">
           {callType === "receiver"
-            ? getUser.full_name
-            : selectedUser.full_name}
+            ? getUser["participants"][0].full_name
+            : full_name}
         </p>
         <p className="call_info">
           {callType === "receiver"
-            ? `${getUser.full_name} is calling you`
+            ? `${getUser["participants"][0].full_name} is calling you`
             : msg}
         </p>
         <div className="btn_container">

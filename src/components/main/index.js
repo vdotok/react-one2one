@@ -1,5 +1,5 @@
 /* eslint-disable */
-import React, { useContext, useEffect, useMemo, useRef } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import styled from "styled-components";
 import { SDKContext } from "context/sdk-client";
 import SideMenu from "components/side-menu";
@@ -12,6 +12,7 @@ import EmptyChatSection from "components/empty-chat-section";
 import { UserContext } from "context/user";
 import { CallContext } from "context/call";
 import CallModal from "components/call-modal";
+import { GroupContext } from "context/group";
 
 const Container = styled.main`
   display: flex;
@@ -32,9 +33,11 @@ const MainContainer = styled.div`
 
 function Main(props) {
   const { children } = props;
-  const { setVdotokClient, setMessageClient } = useContext(SDKContext);
+  const { setVdotokClient, setMessageClient, messageClient } =
+    useContext(SDKContext);
+  const [msgSdkConnected, setMsgSdkConnected] = useState(false);
   const {
-    state: { selectedUser, usersList },
+    state: { selectedUser },
     dispatch: userDispatch,
     usersListRef,
   } = useContext(UserContext);
@@ -42,10 +45,35 @@ function Main(props) {
     state: { callType, receivedCall },
     dispatch: callDispatch,
   } = useContext(CallContext);
+  const {
+    state: { allGroups },
+    groupListRef,
+  } = useContext(GroupContext);
   const [user] = useLocalStorage("user", {});
 
-  // const usersListRef = useRef(usersList);
-  console.log("$$", { usersList });
+  useEffect(() => {
+    if (
+      msgSdkConnected &&
+      groupListRef.current.length &&
+      messageClient.projectID
+    ) {
+      console.log("$$ useEffect", {
+        groupListRef: groupListRef.current,
+        messageClient,
+        allGroups,
+        user,
+      });
+
+      for (let i = 0; i < allGroups.length; i++) {
+        const body = {
+          key: allGroups[i].channel_key,
+          channel: allGroups[i].channel_name,
+        };
+        console.log("$$", { body });
+        messageClient.Subscribe(body);
+      }
+    }
+  }, [groupListRef.current, messageClient.projectID, msgSdkConnected]);
 
   const callStatusHandler = (callStatusRes) => {
     const audioStream = callStatusRes.audio_status === 1;
@@ -57,12 +85,15 @@ function Main(props) {
   };
 
   const receiverHandler = (receiverRes) => {
-    const findUser = [...usersListRef.current].find(
-      (user) => user.ref_id === receiverRes.from
+    const findUser = [...groupListRef.current].find(
+      (user) => user["participants"][0].ref_id === receiverRes.from
     );
+    // const findUser = [...usersListRef.current].find(
+    //   (user) => user.ref_id === receiverRes.from
+    // );
     console.log("## receiverHandler", {
       findUser,
-      usersList,
+      groupListRef: groupListRef.current,
       receiverRes,
       usersListRef: usersListRef.current,
     });
@@ -186,8 +217,17 @@ function Main(props) {
     console.log("MessagingClient initializing==>", { MessagingClient });
     MessagingClient.Register(user.ref_id, user.authorization_token);
     MessagingClient.on("connect", (res) => {
-      console.log("** MessagingClient SDK connected", { res });
+      console.log("$$ MessagingClient SDK connected", { res });
+      setMsgSdkConnected(true);
     });
+    MessagingClient.on("subscribed", (res) => {
+      console.log("$$ MessagingClient subscribe res  ", res);
+    });
+    MessagingClient.on("online", (res) => {
+      console.log("$$MessagingClient online  ", res);
+      // this.setUserOnline(response);
+    });
+
     setMessageClient(MessagingClient);
   };
 
@@ -196,7 +236,7 @@ function Main(props) {
     let ClientTimeout = setTimeout(() => {
       console.log("** in timeout", { user });
       initializeCallingSDK();
-      // initializeMessagingSDK();
+      initializeMessagingSDK();
     }, 1000);
 
     return () => {

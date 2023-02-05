@@ -74,14 +74,18 @@ const Container = styled.div`
 
 function UserCard(props) {
   const {
-    user: {
-      ref_id,
-      full_name,
-      message = "",
-      count = "",
-      created_datetime,
-      profile_pic,
-      status = "",
+    group: {
+      participants: [
+        {
+          ref_id,
+          full_name,
+          message = "",
+          count = "",
+          created_datetime,
+          profile_pic,
+          status = "",
+        },
+      ],
     },
   } = props;
 
@@ -90,7 +94,12 @@ function UserCard(props) {
   return (
     <Container
       active={state.selectedUser.ref_id === ref_id}
-      onClick={() => dispatch({ type: "SELECT_USER", payload: props.user })}
+      onClick={() =>
+        dispatch({
+          type: "SELECT_USER",
+          payload: props.group,
+        })
+      }
     >
       <ImageStatus
         style={{ flexShrink: 0 }}

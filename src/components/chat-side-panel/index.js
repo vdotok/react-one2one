@@ -6,7 +6,7 @@ import { getUsers } from "services/user";
 import UsersListContainer from "./users-list-container";
 import EmptyUserContainer from "./empty-user-container";
 import CreateChatModal from "components/create-chat-modal";
-import { ChatPanelHeader, ChatSearchContainer } from "./styles";
+import { ChatPanelHeader } from "./styles";
 import GetIcon from "utils/getIcon";
 import { getGroups } from "services/group";
 import { GroupContext } from "context/group";
@@ -15,7 +15,7 @@ function ChatSidePanel() {
   const [user] = useLocalStorage("user", {});
   const [showModal, setShowModal] = useState(false);
   const {
-    state: { usersList, loading, error },
+    state: { usersList, selectedUser, selectedChat, loading, error },
     dispatch: userDispatch,
     usersListRef,
   } = useContext(UserContext);
@@ -23,9 +23,17 @@ function ChatSidePanel() {
   const {
     state: { allGroups },
     dispatch: groupDispatch,
+    groupListRef,
   } = useContext(GroupContext);
 
-  console.log("## useData response", { loading, usersList, error, allGroups });
+  console.log("## useData response", {
+    loading,
+    usersList,
+    error,
+    allGroups,
+    selectedChat,
+    selectedUser,
+  });
 
   const getAllUsers = (body, cancelToken) => {
     getUsers(body, cancelToken)
@@ -65,6 +73,7 @@ function ChatSidePanel() {
               type: "GET_GROUPS",
               payload: res.data.groups,
             });
+            groupListRef.current = res.data.groups;
           } else {
             groupDispatch({
               type: "GET_GROUP_ERROR",
@@ -116,11 +125,11 @@ function ChatSidePanel() {
   }, [user.auth_token]);
 
   const renderUI = useMemo(() => {
-    console.log("renderUI", { usersList });
+    console.log("renderUI", { allGroups });
     if (loading) {
       return <h1>Loading</h1>;
-    } else if (usersList?.length) {
-      return <UsersListContainer users={usersList} />;
+    } else if (allGroups?.length) {
+      return <UsersListContainer groups={allGroups} />;
     }
     return (
       <EmptyUserContainer
@@ -128,7 +137,7 @@ function ChatSidePanel() {
         desc="Easily create users via the signup page"
       />
     );
-  }, [loading, usersList]);
+  }, [loading, allGroups]);
 
   return (
     <>

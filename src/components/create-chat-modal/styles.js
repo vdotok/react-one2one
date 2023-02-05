@@ -32,10 +32,15 @@ export const TabContainer = styled.div`
     display: flex;
     .tab_chunk {
       padding: 10px;
-      background-color: gold;
+      background-color: #7269ef;
+      color: #fff;
+      border-radius: 4px;
       cursor: pointer;
       &:nth-child(even) {
         margin-left: 5px;
+      }
+      &:not(.tab_chunk_active) {
+        opacity: 0.5;
       }
     }
   }

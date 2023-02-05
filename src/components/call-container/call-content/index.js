@@ -11,7 +11,9 @@ import { Container } from "./styles";
 
 function CallContent() {
   const {
-    state: { selectedUser },
+    state: {
+      selectedUser: { ref_id, full_name, profile_pic },
+    },
   } = useContext(UserContext);
   const {
     state: {
@@ -62,7 +64,7 @@ function CallContent() {
       video,
       audio: 1,
       videoType: "camera",
-      to: [selectedUser.ref_id],
+      to: [ref_id],
     };
 
     console.log("## call params", { video });
@@ -116,8 +118,8 @@ function CallContent() {
         <div className="no_video_container">
           <div className="img_container">
             <ImageStatus
-              src={selectedUser.profile_pic}
-              name={selectedUser.full_name}
+              src={profile_pic}
+              name={full_name}
               showStatus={false}
               alt="user profile"
               className="img"
@@ -152,14 +154,14 @@ function CallContent() {
         <div className="calling_message_container">
           <div className="img_container">
             <ImageStatus
-              src={selectedUser.profile_pic}
-              name={selectedUser.full_name}
+              src={profile_pic}
+              name={full_name}
               showStatus={false}
               alt="user profile"
               className="img"
             />
           </div>
-          <p className="selected_username_text">{selectedUser.full_name}</p>
+          <p className="selected_username_text">{full_name}</p>
           <p className="call_message_text">{callMessage}</p>
         </div>
       );
@@ -179,7 +181,7 @@ function CallContent() {
             <source type="video/mp4" />
           </video>
           {showRemoteVideoStreamIcon}
-          <p className="username_text">{selectedUser.full_name}</p>
+          <p className="username_text">{full_name}</p>
         </div>
         <div className="local_video_container">
           {showLocalAudioStreamIcon}

@@ -16,8 +16,7 @@ function CreateChatModal(props) {
   const [selectedTab, setSelectedTab] = useState(0);
 
   const {
-    state: { selectedUser, usersList, getUser },
-    dispatch: userDispatch,
+    state: { usersList },
   } = useContext(UserContext);
 
   const renderUI = useMemo(() => {
@@ -57,7 +56,9 @@ function CreateChatModal(props) {
               {tabs.map((tab) => (
                 <div
                   key={tab.id}
-                  className="tab_chunk"
+                  className={`tab_chunk ${
+                    selectedTab === tab.index ? "tab_chunk_active" : ""
+                  }`}
                   onClick={() => setSelectedTab(tab.index)}
                 >
                   <p className="tab_chunk_text">{tab.title}</p>

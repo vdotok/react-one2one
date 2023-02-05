@@ -1,9 +1,5 @@
 import styled from "styled-components";
 
-export const ChatSearchContainer = styled.div`
-  padding: 20px 20px 0 20px;
-`;
-
 export const ChatPanelHeader = styled.div`
   display: flex;
   align-items: center;

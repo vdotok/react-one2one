@@ -4,6 +4,7 @@ export const UserContext = createContext();
 const initialState = {
   selectedUser: {},
   getUser: {},
+  selectedChat: {},
   loading: true,
   error: "",
   usersList: [],
@@ -12,7 +13,11 @@ const initialState = {
 const reducer = (state, action) => {
   switch (action.type) {
     case "SELECT_USER":
-      return { ...state, selectedUser: action.payload };
+      return {
+        ...state,
+        selectedChat: action.payload,
+        selectedUser: action.payload["participants"][0],
+      };
     case "GET_USER":
       return { ...state, getUser: action.payload };
     case "GET_USERS_LIST":
