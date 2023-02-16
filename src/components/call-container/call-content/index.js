@@ -61,7 +61,7 @@ function CallContent() {
       localVideo: document.getElementById("localVideo"),
       remoteVideo: document.getElementById("remoteVideo"),
       video,
-      audio: 1,
+      audio,
       videoType: "camera",
       to: [selectedUser.ref_id],
     };
