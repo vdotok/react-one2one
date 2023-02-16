@@ -1390,6 +1390,15 @@ class Client extends events_1.EventEmitter {
         this.UUIDSessionTypes[uUID] = "one_to_one";
         console.log(' OnOfferCall :: :: ::', media_type);
         this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, {});
+        if (params.re_invite) {
+            EventHandler_1.default.SetCallerStatus({
+                videoInformation: this.videoStatus[uUID],
+                audioInformation: this.audioStatus[uUID],
+                sessionUUID: uUID,
+                referenceID: params.ref_id,
+                data: {}
+            }, this);
+        }
     }
     DisposeWebrtc(status, from = null, disposeWebRTC = true) {
         if (!from) {
