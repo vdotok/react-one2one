@@ -1412,13 +1412,13 @@ class Client extends events_1.EventEmitter {
                 this.webRtcPeer.dispose();
                 this.webRtcPeer = null;
             }
-            if (status) {
-                this.sendDisposePacket(this.UUIDSessions[from]);
-            }
-            let session = this.UUIDSessions[from];
-            delete this.UUIDSessionTypes[session];
-            delete this.UUIDSessions[from];
         }
+        if (status) {
+            this.sendDisposePacket(this.UUIDSessions[from]);
+        }
+        let session = this.UUIDSessions[from];
+        delete this.UUIDSessionTypes[session];
+        delete this.UUIDSessions[from];
         /*if(this.pingWorker)
         {
           this.pingWorker.postMessage({method: 'clearPingInterval'});
