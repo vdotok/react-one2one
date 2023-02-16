@@ -1,18 +1,9 @@
 /*!
  * 
- *  VidTok Call version 0.17.1
+ *  VdoTok Call version 0.17.1
  */
-(function webpackUniversalModuleDefinition(root, factory) {
-	if(typeof exports === 'object' && typeof module === 'object')
-		module.exports = factory();
-	else if(typeof define === 'function' && define.amd)
-		define([], factory);
-	else if(typeof exports === 'object')
-		exports["CVDOTOK"] = factory();
-	else
-		root["CVDOTOK"] = factory();
-})(this, function() {
-return /******/ (function(modules) { // webpackBootstrap
+window["CVDOTOK"] =
+/******/ (function(modules) { // webpackBootstrap
 /******/ 	// The module cache
 /******/ 	var installedModules = {};
 /******/
@@ -183,7 +174,6 @@ class Client extends events_1.EventEmitter {
         this.isManyToMany = false;
         this.manyToMany = {};
         this.participantsInCall = [];
-        this.callOptions = { 'audio': true, 'video': true, 'videoType': 'camera' };
         this.streamHelper = null;
         this.nativeScreenShare = [];
         this.htmlNormalizationCode = null;
@@ -199,8 +189,21 @@ class Client extends events_1.EventEmitter {
         this.projectID = _Credentials.projectID;
         this.projectSecret = _Credentials.secret;
         this.stunServer = _Credentials.stunServer;
+        if (!this.stunServer) {
+            EventHandler_1.default.OnAuthError("Please provide STUN server address!", this);
+            return;
+        }
+        if (!this.projectID) {
+            EventHandler_1.default.OnAuthError("Please provide your Project ID!", this);
+            return;
+        }
+        if (!this.stunServer) {
+            EventHandler_1.default.OnAuthError("Please provide your Project secret!", this);
+            return;
+        }
         this.Authentication(_Credentials);
         window.addEventListener('online', this.onOnline.bind(this));
+        window.addEventListener('offline', this.onOffline.bind(this));
         setInterval(() => {
             for (var uUID in this.webRtcPeers) {
                 if (this.webRtcPeers.hasOwnProperty(uUID)) {
@@ -217,8 +220,6 @@ class Client extends events_1.EventEmitter {
     }
     Authentication(credentials) {
         console.log("====DER===", credentials, this.projectID, this.projectSecret, this.clientToken);
-        //this.Connect('wss://cpaas-url-based-demo.vdotok.com:8443/call')
-        // this.Connect('wss://kurento3.togee.io:8443/call');
         if (credentials.host) {
             this.Connect(credentials.host);
         }
@@ -238,6 +239,10 @@ class Client extends events_1.EventEmitter {
     async onOnline() {
         this.reconnectCount = [];
         this.afterOnlineProcess();
+    }
+    async onOffline() {
+        //closing socket immediately once offline event received
+        this.ws.close();
     }
     afterOnlineProcess() {
         let socketCheckInterval = setInterval(async () => {
@@ -274,10 +279,8 @@ class Client extends events_1.EventEmitter {
                     else {
                         this.socketState = "fail_registration";
                     }
-                    if (!selfReconnect) {
-                        RegisterEventHandler_1.default.SetRegisterResponse(messageData, this);
-                    }
-                    else {
+                    RegisterEventHandler_1.default.SetRegisterResponse(messageData, this);
+                    if (selfReconnect) {
                         this.afterOnlineProcess(); //check socket state and reconnect all sessions
                     }
                     this.registerPingWorker();
@@ -428,7 +431,11 @@ class Client extends events_1.EventEmitter {
                     else if (messageData.responseCode == 400) {
                         console.log("SDK session ended in pong", messageData);
                         this.pingSessionStopped[messageData.sessionUUID] = true;
-                        this.emit("call", { type: "SESSION_SUSPENSION", message: "Show has suspended by VDOTOK", uuid: messageData.sessionUUID });
+                        this.emit("call", {
+                            type: "SESSION_SUSPENSION",
+                            message: "Show has suspended by VDOTOK",
+                            uuid: messageData.sessionUUID
+                        });
                     }
                     else if (messageData.responseCode == 407) {
                         console.log("SDK invalid authentication or invalid mcToken in pong", messageData);
@@ -501,7 +508,7 @@ class Client extends events_1.EventEmitter {
     }
     CheckSocketConnection() {
         let socket = this.ws;
-        return socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING ? true : false;
+        return socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING;
     }
     autoReconnectCall(uUID, params = null) {
         var _a, _b, _c, _d;
@@ -546,7 +553,10 @@ class Client extends events_1.EventEmitter {
             }
         }
         else {
-            return { message: "Unable to auto reconnect call, Session Info not available for this session -> " + uUID, status: false };
+            return {
+                message: "Unable to auto reconnect call, Session Info not available for this session -> " + uUID,
+                status: false
+            };
         }
     }
     PeerToPeerReInvite(messageData) {
@@ -616,7 +626,7 @@ class Client extends events_1.EventEmitter {
             this.mediaType = "video";
             this.to = Array.isArray(params.to) ? params.to : [params.to];
             this.currentFromUser = this.currentUser;
-            params.isPeer = params.isPeer || 1;
+            params.isPeer = params.isPeer || 0;
             this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: params.isPeer, isInitiator: 1 };
             if (!params.data) {
                 params.data = {};
@@ -658,25 +668,28 @@ class Client extends events_1.EventEmitter {
             this.audioStatus[uUID] = 1;
             this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
             params.sessionUUID = params.uUID = uUID;
-            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: 1, isInitiator: 1 };
-            var constraints = {
-                audio: true,
-                video: false
-            };
+            params.isPeer = params.isPeer || 0;
+            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: params.isPeer, isInitiator: 1 };
             this.mediaType = "audio";
             this.to = Array.isArray(params.to) ? params.to : [params.to];
             this.currentFromUser = this.currentUser;
             this.localVideos[uUID] = params.localVideo;
-            CommonHelper_1.SetPlaysInline(this.localVideos[uUID]);
-            var options = {
-                localVideo: params.localVideo,
-                remoteVideo: params.remoteVideo,
-                mediaConstraints: constraints,
-                onicecandidate: (candidate) => {
-                    this.onIceCandidate(candidate, this.currentUser);
-                },
-                onerror: this.onError
-            };
+            if (!params.data) {
+                params.data = {};
+            }
+            params.data.stateInfo = { video: 0, audio: params.audio };
+            this.sessionInfo[uUID].currentCallParams = params;
+            let options = {};
+            try {
+                options = await this.createOptions(params);
+                if (options && !options.status) {
+                    throw options.message;
+                }
+            }
+            catch (e) {
+                this.onErrorHandler();
+                return rejects({ status: false, error: e });
+            }
             this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
                 if (error) {
                     rejects(error);
@@ -698,7 +711,12 @@ class Client extends events_1.EventEmitter {
     OnExistingParticipants(messageData) {
         if (messageData.total_participants) {
             this.participantsInCall[messageData.sessionUUID] = messageData.total_participants ? (messageData.total_participants) : (this.participantsInCall[messageData.sessionUUID] + 1);
-            this.sendCustomRPC({ type: "Viewer_Count", message: "Viewers count updated.", uuid: messageData.sessionUUID, count: this.participantsInCall[messageData.sessionUUID] - 1 }, messageData.sessionUUID);
+            this.sendCustomRPC({
+                type: "Viewer_Count",
+                message: "Viewers count updated.",
+                uuid: messageData.sessionUUID,
+                count: this.participantsInCall[messageData.sessionUUID] - 1
+            }, messageData.sessionUUID);
         }
         if (this.isManyToMany && Object.keys(this.manyToMany).length) {
             this.manyToMany.OnExistingParticipants(messageData);
@@ -707,14 +725,24 @@ class Client extends events_1.EventEmitter {
     OnNewParticipant(messageData) {
         EventHandler_1.default.OnNewParticipant(messageData, this);
         this.participantsInCall[messageData.sessionUUID] = messageData.total_participants ? (messageData.total_participants) : (this.participantsInCall[messageData.sessionUUID] + 1);
-        this.sendCustomRPC({ type: "Viewer_Count", message: "Viewers count updated.", uuid: messageData.sessionUUID, count: this.participantsInCall[messageData.sessionUUID] - 1 }, messageData.sessionUUID);
+        this.sendCustomRPC({
+            type: "Viewer_Count",
+            message: "Viewers count updated.",
+            uuid: messageData.sessionUUID,
+            count: this.participantsInCall[messageData.sessionUUID] - 1
+        }, messageData.sessionUUID);
         if (this.isManyToMany && Object.keys(this.manyToMany).length) {
             this.manyToMany.OnNewParticipant(messageData);
         }
     }
     OnParticipantLeft(messageData) {
         this.participantsInCall[messageData.sessionUUID] = messageData.total_participants ? (messageData.total_participants) : (this.participantsInCall[messageData.sessionUUID] - 1);
-        this.sendCustomRPC({ type: "Viewer_Count", message: "Viewers count updated.", uuid: messageData.sessionUUID, count: this.participantsInCall[messageData.sessionUUID] - 1 }, messageData.sessionUUID);
+        this.sendCustomRPC({
+            type: "Viewer_Count",
+            message: "Viewers count updated.",
+            uuid: messageData.sessionUUID,
+            count: this.participantsInCall[messageData.sessionUUID] - 1
+        }, messageData.sessionUUID);
         if (this.isManyToMany && Object.keys(this.manyToMany).length) {
             this.manyToMany.OnParticipantLeft(messageData);
         }
@@ -742,7 +770,12 @@ class Client extends events_1.EventEmitter {
         console.log("SessionCancel messageData", { messageData });
         if (type != 'break') {
             this.participantsInCall[messageData.sessionUUID] = messageData.total_participants ? (messageData.total_participants) : (this.participantsInCall[messageData.sessionUUID] - 1);
-            this.sendCustomRPC({ type: "Viewer_Count", message: "Viewers count updated.", uuid: messageData.sessionUUID, count: this.participantsInCall[messageData.sessionUUID] - 1 }, messageData.sessionUUID);
+            this.sendCustomRPC({
+                type: "Viewer_Count",
+                message: "Viewers count updated.",
+                uuid: messageData.sessionUUID,
+                count: this.participantsInCall[messageData.sessionUUID] - 1
+            }, messageData.sessionUUID);
         }
         if (this.isManyToMany && Object.keys(this.manyToMany).length) {
             this.manyToMany.OnSessionCancel(messageData);
@@ -1016,59 +1049,6 @@ class Client extends events_1.EventEmitter {
         params["to"] = [];
         return this.Broadcasting(params);
     }
-    ScreenSharing(params) {
-        let uUID = new Date().getTime().toString();
-        this.localVideos[uUID] = params.localVideo;
-        let displayMediaOptions = {
-            video: {
-                cursor: "always"
-            },
-            audio: false
-        };
-        mediaDevices.getDisplayMedia(displayMediaOptions).then(async (stream) => {
-            //////////////////////////////////////
-            /////peer connection
-            this.mediaType = "video";
-            this.to = params.to;
-            this.currentFromUser = this.currentUser;
-            let assUUID = "";
-            let isPublic = (params.hasOwnProperty("broadcastType")) ? params["broadcastType"] : 0;
-            let session_type = "screen";
-            const configuration = { 'iceServers': [{ 'urls': 'stun:stun.l.google.com:19302' }] };
-            const peerConnection = new RTCPeerConnection(configuration);
-            this.rtcPears = peerConnection;
-            /////////////////////////////////////
-            /////////////// create offer
-            const offerSdp = await peerConnection.createOffer();
-            await peerConnection.setLocalDescription(offerSdp);
-            this.onOfferOneToManyCall(null, offerSdp.sdp, uUID, assUUID, isPublic, session_type);
-            ////////////////////////////////////
-            ////////////////////////////////////
-            // Listen for local ICE candidates on the local RTCPeerConnection
-            peerConnection.addEventListener('icecandidate', event => {
-                if (event.candidate) {
-                    this.onIceCandidate(event.candidate, this.currentUser);
-                }
-            });
-            // Listen for connectionstatechange on the local RTCPeerConnection
-            peerConnection.addEventListener('connectionstatechange', event => {
-                if (peerConnection.connectionState === 'connected') {
-                    console.log("Peers-connected:::");
-                    // Peers connected!
-                }
-            });
-            peerConnection.addEventListener('track', async (event) => {
-                //	remoteStream.addTrack(event.track, remoteStream);
-            });
-            ///////////////end peer con
-            ///////////////////////////////////////////
-            stream.getTracks().forEach((track) => {
-                peerConnection.addTrack(track, stream);
-            });
-            params.localVideo.srcObject = stream;
-            params.localVideo.play();
-        });
-    }
     async createOptions(params) {
         let vidContraints = {
             mandatory: {
@@ -1127,36 +1107,41 @@ class Client extends events_1.EventEmitter {
             };
         }
         this.nativeScreenShare[params.uUID] = streams.nativeScreenShare;
-        return new Promise((resolve, rejects) => {
-            this.sendStateRPC({}, -1, 0, 'session_init', { to: params.to, from: this.currentFromUser, media_type: (!params.video ? 'audio' : 'video'), session_type: "call", call_type: "one_to_one" });
-            let initInterval = setInterval(() => {
-                if (this.turnConfigs && this.turnConfigs.receiver_status && !this.turnConfigs.receiver_status.status) {
-                    this.onErrorHandler();
-                    rejects({ status: false, message: "User is offline!" });
-                }
-                if (this.turnConfigs) {
-                    clearInterval(initInterval);
-                    if (this.turnConfigs.status) {
-                        options.configuration = {
-                            iceServers: [{
-                                    urls: [
-                                        "stun:" + this.stunServer,
-                                    ]
-                                }, {
-                                    username: this.turnConfigs.username,
-                                    credential: this.turnConfigs.credential,
-                                    urls: this.turnConfigs.url
-                                }]
-                        };
+        if (params.isPeer) {
+            return new Promise((resolve, rejects) => {
+                this.sendStateRPC({}, -1, 0, 'session_init', {
+                    to: params.to,
+                    from: this.currentFromUser,
+                    media_type: (!params.video ? 'audio' : 'video'),
+                    session_type: "call",
+                    call_type: "one_to_one"
+                });
+                let initInterval = setInterval(() => {
+                    if (this.turnConfigs && this.turnConfigs.receiver_status && !this.turnConfigs.receiver_status.status) {
+                        this.onErrorHandler();
+                        rejects({ status: false, message: "User is offline!" });
                     }
-                    this.turnConfigs = null;
-                    resolve(options);
-                }
-            }, 100);
-        });
-        options.ontrack = (track) => {
-            console.log("received track", track);
-        };
+                    if (this.turnConfigs) {
+                        clearInterval(initInterval);
+                        if (this.turnConfigs.status) {
+                            options.configuration = {
+                                iceServers: [{
+                                        urls: [
+                                            "stun:" + this.stunServer,
+                                        ]
+                                    }, {
+                                        username: this.turnConfigs.username,
+                                        credential: this.turnConfigs.credential,
+                                        urls: this.turnConfigs.url
+                                    }]
+                            };
+                        }
+                        this.turnConfigs = null;
+                        resolve(options);
+                    }
+                }, 100);
+            });
+        }
         return options;
     }
     async startScreenShare(uUID, extraData = null) {
@@ -1314,9 +1299,13 @@ class Client extends events_1.EventEmitter {
         ///////////////////////////////////////////
         callRequest.SendCallRequest(this.ws);
         if (this.webRtcPeers && this.webRtcPeers[uUID] && this.webRtcPeers[uUID].peerConnection) {
+            //@ts-ignore
             this.webRtcPeers[uUID].peerConnection.addEventListener("iceconnectionstatechange", this.onIceError.bind(this, uUID), false);
         }
-        this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, { fromVideo: true, reInvite: re_invite });
+        this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, {
+            fromVideo: true,
+            reInvite: re_invite
+        });
     }
     onIceError(uUID, ev) {
         let states = ['closed', 'failed', 'disconnected'];
@@ -1401,14 +1390,6 @@ class Client extends events_1.EventEmitter {
         this.UUIDSessionTypes[uUID] = "one_to_one";
         console.log(' OnOfferCall :: :: ::', media_type);
         this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, {});
-        // var message = {
-        // 	id : 'call',
-        // 	from : this.currentUser,
-        // 	to : this.to,
-        // 	sdpOffer : offerSdp
-        // };
-        // console.log('Invoking SDP Message',message);
-        // this.SendPacket(message);
     }
     DisposeWebrtc(status, from = null, disposeWebRTC = true) {
         if (!from) {
@@ -1440,7 +1421,7 @@ class Client extends events_1.EventEmitter {
         }
         /*if(this.pingWorker)
         {
-            this.pingWorker.postMessage({method: 'clearPingInterval'});
+          this.pingWorker.postMessage({method: 'clearPingInterval'});
         }*/
     }
     sendDisposePacket(uUID) {
@@ -1789,7 +1770,6 @@ class Client extends events_1.EventEmitter {
         EventHandler_1.default.screenOffByUser({ sessionUUID: uuid }, this);
     }
     registerPingWorker() {
-        window.URL = window.URL || window.webkitURL;
         const response = `let pingInterval;
                             onmessage = (res) => {
                                 let data = res.data;
@@ -1854,16 +1834,16 @@ class Client extends events_1.EventEmitter {
         try {
             let pingCount = 0;
             /*for (var uUID in this.webRtcPeers) {
-                if(this.pingSessionStopped[uUID])
-                {
-                    console.log("SDK not sending Ping session already stopped from server with 400 pong for: ", uUID);
-                }
-                else
-                {
-                    pingCount++;
-                    this.sendStateRPC({}, uUID, 0, 'session_ping')
-                    console.log("SDK Ping sent for: ", uUID);
-                }
+              if(this.pingSessionStopped[uUID])
+              {
+                console.log("SDK not sending Ping session already stopped from server with 400 pong for: ", uUID);
+              }
+              else
+              {
+                pingCount++;
+                this.sendStateRPC({}, uUID, 0, 'session_ping')
+                console.log("SDK Ping sent for: ", uUID);
+              }
             }*/
             if (!pingCount || true) {
                 this.sendStateRPC({}, -1, 0, 'ping');
@@ -2488,7 +2468,7 @@ class EventHandlerService {
     OnIncomingGroupCall(res, instance) {
         let from = res.from;
         let callType = res["call_type"];
-        instance.emit("groupCall", { type: "CALL_RECEIVED", message: "Received a call", from: from, call_type: res.media_type, session: callType, uuid: res.sessionUUID, data: res.data });
+        instance.emit("groupCall", { type: "CALL_RECEIVED", message: "Received a call", from: from, call_type: res.media_type, session: callType, uuid: res.sessionUUID, data: res.data, to: res.participants });
     }
     SessionStart(res, instance) {
         instance.emit("call", { type: "CALL_STARTED", message: "Call is being started" });
@@ -18777,6 +18757,7 @@ class ManyToMany extends events_1.EventEmitter {
             switch (messageData.requestType) {
                 case 'register':
                     RegisterEventHandler_1.default.SetRegisterResponse(messageData, this);
+                    this.registerPingWorker();
                     break;
                 case 'callResponse':
                     console.log(' CallResponse: ', messageData);
@@ -18841,6 +18822,7 @@ class ManyToMany extends events_1.EventEmitter {
         webSocketConnetion.onclose = (res) => {
             EventHandler_1.default.OnDisconnection(res, this);
             console.log("OnClose socket==", res);
+            this.pingWorker.postMessage({ method: 'clearPingInterval' });
         };
         webSocketConnetion.onopen = (res) => {
             EventHandler_1.default.OnConnection(res, this);
@@ -18852,6 +18834,7 @@ class ManyToMany extends events_1.EventEmitter {
         webSocketConnetion.onerror = (res) => {
             EventHandler_1.default.OnDisconnection(res, this);
             console.log("OnError socket==", res);
+            this.pingWorker.postMessage({ method: 'clearPingInterval' });
         };
         this.ws = webSocketConnetion;
     }
@@ -19437,6 +19420,112 @@ class ManyToMany extends events_1.EventEmitter {
         };
         this.SendPacket(response);
         this.DisposeWebrtc(false);
+    }
+    sendStateRPC(data, uUID, store = 1, requestType = 'hv_info', extraParams = {}) {
+        let request = {};
+        request.requestType = requestType;
+        //hv_info --> Host to All viewers Communication
+        request.type = 'request';
+        request.requestID = new Date().getTime().toString();
+        if (uUID === -1) {
+            delete request.sessionUUID;
+        }
+        else {
+            request.sessionUUID = uUID ? uUID : this.UUIDSessions[this.currentUser];
+        }
+        request.mcToken = this.McToken;
+        request.referenceID = this.currentUser;
+        request.data = data;
+        request.store = store; //This information should be save or not for new viewers
+        if (extraParams && Object.keys(extraParams).length) {
+            request = Object.assign(Object.assign({}, request), extraParams);
+        }
+        this.ws.send(JSON.stringify(request));
+    }
+    registerPingWorker() {
+        const response = `let pingInterval;
+                            onmessage = (res) => {
+                                let data = res.data;
+                                console.log('Message received from main script');
+                                const method = data.method;
+                                if (method === 'format') {
+                                    postMessage({
+                                        data: {
+                                            'res': 'I am a customized result string.',
+                                        }
+                                    });
+                                }
+                                else if (method === 'startPingInterval')
+                                {
+                                    if(!data.interval)
+                                    {
+                                        data.interval =  5000;
+                                    }
+                                    clearPingInterval();
+                                    startPingInterval(data.interval);
+                                }
+                                else if(method === 'clearPingInterval')
+                                {
+                                    clearPingInterval();
+                                }
+                                console.log('Posting message back to main script');
+                            }
+                            
+                            function startPingInterval(interval)
+                            {
+                                pingInterval = setInterval(()=>{
+                                    postMessage({
+                                            'sendPing': true
+                                    });
+                                },interval)
+                            }
+                            function  clearPingInterval()
+                            {
+                                if(pingInterval)
+                                {
+                                    clearInterval(pingInterval);
+                                }
+                            }
+                            `;
+        const blob = new Blob([response], { type: 'application/javascript' });
+        this.pingWorker = new Worker(URL.createObjectURL(blob));
+        if (this.pingWorker) {
+            // event processing
+            this.pingWorker.onmessage = (e) => {
+                if (e && e.data && e.data.sendPing) {
+                    this.sendPing();
+                }
+                else {
+                    //console.log(`Response: ${JSON.stringify(e)}`);
+                }
+            };
+            //Start pinging server
+            this.pingWorker.postMessage({ method: 'startPingInterval', interval: 5000 });
+        }
+    }
+    sendPing() {
+        try {
+            let pingCount = 0;
+            /*for (var uUID in this.webRtcPeers) {
+              if(this.pingSessionStopped[uUID])
+              {
+                console.log("SDK not sending Ping session already stopped from server with 400 pong for: ", uUID);
+              }
+              else
+              {
+                pingCount++;
+                this.sendStateRPC({}, uUID, 0, 'session_ping')
+                console.log("SDK Ping sent for: ", uUID);
+              }
+            }*/
+            if (!pingCount || true) {
+                this.sendStateRPC({}, -1, 0, 'ping');
+                console.log("SDK Ping sent!");
+            }
+        }
+        catch (e) {
+            console.log("Error while sending ping to server.", e);
+        }
     }
 }
 exports.default = ManyToMany;
@@ -20249,4 +20338,3 @@ exports.default = Broadcast;
 
 /***/ })
 /******/ ]);
-});

@@ -42,10 +42,11 @@ function SideMenu() {
   const navigate = useNavigate();
   const { darkMode, setDarkMode } = useContext(DarkModeContext);
   const { vdotokClient, setVdotokClient } = useContext(VdotokClientContext);
-  const { state: uuid } = useContext(CallContext);
+  const { state: { isSocketDrop} } = useContext(CallContext);
   console.log({ vdotokClient });
   const [user, setUser] = useLocalStorage("user", {});
   const [openMenu, setOpenMenu] = useState(false);
+  const [socketColor, setSocketColor] = useState("red");
   const [selectedId, setSelectedId] = useState(chunks[0].id);
   const GetThemeIcon = useMemo(() => {
     if (darkMode) {
@@ -79,6 +80,17 @@ function SideMenu() {
     }
   }, []);
 
+  useEffect(() => {
+      console.log("state change" , vdotokClient.socketState);
+      if (vdotokClient && vdotokClient.socketState === "registered") {
+          setSocketColor("green");
+      } else if (vdotokClient && vdotokClient.socketState === "connecting") {
+          setSocketColor("yellow");
+      } else {
+          setSocketColor("red");
+      }
+  }, [isSocketDrop, vdotokClient.socketState])
+console.log("**",{socketState:vdotokClient.socketState})
   const logoutHandler = () => {
     console.log({ vdotokClient });
     vdotokClient.Disconnect();
@@ -91,7 +103,6 @@ function SideMenu() {
     event.preventDefault();
     event.stopPropagation();
     setDarkMode(!darkMode);
-    // vdotokClient.sendCustomRPC({ darkMode: !darkMode }, uuid);
   };
 
   return (
@@ -123,7 +134,7 @@ function SideMenu() {
         <ThemeButton onClick={themeHandler}>{GetThemeIcon}</ThemeButton>
         <LogoutMenuContainer active={openMenu}>
           <LogoContainer onClick={() => setOpenMenu(!openMenu)}>
-              <SocketState style={{background : (vdotokClient && vdotokClient.socketState === "registered" ? "green" : (vdotokClient && vdotokClient.socketState === "connecting" ? "yellow" : "red"))}}/>
+              <SocketState style={{background : socketColor}}/>
             <Image id={"profile"} src={avatar} alt="profile" />
           </LogoContainer>
           {openMenu ? (

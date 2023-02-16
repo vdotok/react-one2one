@@ -14,6 +14,7 @@ const initialState = {
   uuid: null,
   callMessage: "",
   reconnectCall: false,
+    isSocketDrop:false
 };
 
 const reducer = (state, action) => {
@@ -62,6 +63,8 @@ const reducer = (state, action) => {
       return { ...state, chat: action.payload };
     case "CALL_MESSAGE":
       return { ...state, callMessage: action.payload };
+      case "SOCKET_DROP":
+      return { ...state, isSocketDrop: action.payload };
     case "RECONEECT_CALL_DATA":
       return { ...state, ...action.payload };
     default:
