@@ -909,6 +909,9 @@ class Client extends events_1.EventEmitter {
                 this.localVideos[uUID] = options.localVideo;
             }
             if (uUID) {
+                if (!this.sessionInfo[uUID]) {
+                    this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: params.isPeer | 1, isInitiator: 0 };
+                }
                 this.sessionInfo[uUID].currentCallParams = params;
                 this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
                     if (error) {
