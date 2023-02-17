@@ -1417,7 +1417,7 @@ class Client extends events_1.EventEmitter {
         }
         if (this.webRtcPeers) {
             for (var uUID in this.webRtcPeers) {
-                if ((onlyUUID && onlyUUID == uUID) || !onlyUUID) //only a single session get deleted or all sessions
+                if (!onlyUUID || (onlyUUID && onlyUUID == uUID)) //only a single session get deleted or all sessions
                  {
                     if (this.webRtcPeers.hasOwnProperty(uUID)) {
                         this.webRtcPeers[uUID].dispose();
@@ -1425,7 +1425,8 @@ class Client extends events_1.EventEmitter {
                         if (this.webRtcPeers[uUID] && this.webRtcPeers[uUID].peerConnection) {
                             this.webRtcPeers[uUID].peerConnection.removeEventListener("iceconnectionstatechange", this.onIceError, false);
                         }
-                        delete this.webRtcPeers[uUID];
+                        this.deleteIndex(this.webRtcPeers, uUID);
+                        this.deleteIndex(this.sessionInfo, uUID);
                     }
                 }
             }
@@ -1440,8 +1441,8 @@ class Client extends events_1.EventEmitter {
             this.sendDisposePacket(this.UUIDSessions[from]);
         }
         let session = this.UUIDSessions[from];
-        delete this.UUIDSessionTypes[session];
-        delete this.UUIDSessions[from];
+        this.deleteIndex(this.UUIDSessionTypes, session);
+        this.deleteIndex(this.UUIDSessions, from);
         /*if(this.pingWorker)
         {
           this.pingWorker.postMessage({method: 'clearPingInterval'});
@@ -1912,6 +1913,9 @@ class Client extends events_1.EventEmitter {
         }
         this.webRtcPeers = [];
         this.sessionInfo = [];
+    }
+    deleteIndex(dataArray, indexToDelete) {
+        dataArray.splice(indexToDelete, indexToDelete);
     }
 }
 exports.default = Client;
