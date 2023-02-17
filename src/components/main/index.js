@@ -162,7 +162,11 @@ function Main(props) {
             //case "PARTICIPANT_LEFT":
             case "CALL_ENDED":
             case "SESSION_END":
+            case "PARTICIPANT_UNAVAILABLE" :
+            case "INVALID_TARGET" :
+            case "BAD_REQUEST" :
                 //case "SOCKET_DROPPED":
+                alert(response.message);
                 return endCallHandler();
             case "SOCKET_DROPPED" :
                 return callDispatch({type: "SOCKET_DROP", payload: true})
