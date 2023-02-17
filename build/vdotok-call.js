@@ -1411,19 +1411,22 @@ class Client extends events_1.EventEmitter {
             }, this);
         }
     }
-    DisposeWebrtc(status, from = null, disposeWebRTC = true) {
+    DisposeWebrtc(status, from = null, disposeWebRTC = true, onlyUUID = null) {
         if (!from) {
             from = this.currentFromUser;
         }
         if (this.webRtcPeers) {
             for (var uUID in this.webRtcPeers) {
-                if (this.webRtcPeers.hasOwnProperty(uUID)) {
-                    this.webRtcPeers[uUID].dispose();
-                    this.sendDisposePacket(uUID);
-                    if (this.webRtcPeers[uUID] && this.webRtcPeers[uUID].peerConnection) {
-                        this.webRtcPeers[uUID].peerConnection.removeEventListener("iceconnectionstatechange", this.onIceError, false);
+                if ((onlyUUID && onlyUUID == uUID) || !onlyUUID) //only a single session get deleted or all sessions
+                 {
+                    if (this.webRtcPeers.hasOwnProperty(uUID)) {
+                        this.webRtcPeers[uUID].dispose();
+                        this.sendDisposePacket(uUID);
+                        if (this.webRtcPeers[uUID] && this.webRtcPeers[uUID].peerConnection) {
+                            this.webRtcPeers[uUID].peerConnection.removeEventListener("iceconnectionstatechange", this.onIceError, false);
+                        }
+                        delete this.webRtcPeers[uUID];
                     }
-                    delete this.webRtcPeers[uUID];
                 }
             }
         }
@@ -2644,8 +2647,6 @@ class EventHandlerService {
                     break;
                 case 404:
                     if (res.responseMessage == "invalid target") {
-                        if (callType == "one_to_one" || callType == "one_to_one_with_ai")
-                            instance.DisposeWebrtc(true);
                         instance.emit("call", {
                             type: "INVALID_TARGET",
                             message: "Receiver is not found",
@@ -2662,6 +2663,8 @@ class EventHandlerService {
                             uuid: res.sessionUUID
                         });
                     }
+                    if (callType == "one_to_one" || callType == "one_to_one_with_ai")
+                        instance.DisposeWebrtc(true);
                     break;
                 default:
                     if (res.responseCode === 400 && res.responseMessage == "bad request") {
