@@ -1067,17 +1067,10 @@ class Client extends events_1.EventEmitter {
                 minFrameRate: 15,
             }
         };
-        let audioConstraints = {
-            echoCancellation: true,
-            noiseSuppression: true
-        };
-        if (!params.audio) {
-            audioConstraints = false;
-        }
         if (!params.video)
             vidContraints = false;
         var constraints = {
-            audio: audioConstraints,
+            audio: params.audio,
             video: vidContraints
         };
         CommonHelper_1.SetPlaysInline(params.localVideo);
@@ -2440,7 +2433,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable prettier/prettier */
 const CommonHelper_1 = __webpack_require__(5);
 class EventHandlerService {
-    constructor() { }
+    constructor() {
+    }
     OnAuthError(error, instance) {
         instance.emit("error", { type: "Authorization", message: "Your credentials for vidtok are invalid." + error });
     }
@@ -2469,13 +2463,27 @@ class EventHandlerService {
         let status = res.response;
         let from = res.from;
         if (status == "accepted") {
-            let resObject = { type: "CALL_ACCEPTED", message: "Call is accepted by receiver", from: from, call_type: "one_to_one", uuid: res.sessionUUID, data: res.data };
+            let resObject = {
+                type: "CALL_ACCEPTED",
+                message: "Call is accepted by receiver",
+                from: from,
+                call_type: "one_to_one",
+                uuid: res.sessionUUID,
+                data: res.data
+            };
             if (res["call_type"])
                 resObject["call_type"] = res["call_type"];
             instance.emit("call", resObject);
         }
         else {
-            let resObject = { type: "CALL_REJECTED", message: "Call is rejected by receiver", from: from, call_type: "one_to_one", uuid: res.sessionUUID, data: res.data };
+            let resObject = {
+                type: "CALL_REJECTED",
+                message: "Call is rejected by receiver",
+                from: from,
+                call_type: "one_to_one",
+                uuid: res.sessionUUID,
+                data: res.data
+            };
             if (res["call_type"])
                 resObject["call_type"] = res["call_type"];
             instance.emit("call", resObject);
@@ -2486,16 +2494,40 @@ class EventHandlerService {
         let from = res.from;
         let callType = (res["call_type"] != undefined) ? res["call_type"] : "one_to_one";
         if (callType == "many_to_many") {
-            instance.emit("groupCall", { type: "CALL_RECEIVED", message: "Received a call", from: from, call_type: res.media_type, session: callType, data: res.data });
+            instance.emit("groupCall", {
+                type: "CALL_RECEIVED",
+                message: "Received a call",
+                from: from,
+                call_type: res.media_type,
+                session: callType,
+                data: res.data
+            });
             // instance.emit("groupCall",{type:"PARTICIPANT_LIST",message:"Participant List is available",participant_list:participantList});
         }
         else
-            instance.emit("call", { type: "CALL_RECEIVED", message: "Received a call", from: from, call_type: res.media_type, session: callType, uuid: res.sessionUUID, data: res.data });
+            instance.emit("call", {
+                type: "CALL_RECEIVED",
+                message: "Received a call",
+                from: from,
+                call_type: res.media_type,
+                session: callType,
+                uuid: res.sessionUUID,
+                data: res.data
+            });
     }
     OnIncomingGroupCall(res, instance) {
         let from = res.from;
         let callType = res["call_type"];
-        instance.emit("groupCall", { type: "CALL_RECEIVED", message: "Received a call", from: from, call_type: res.media_type, session: callType, uuid: res.sessionUUID, data: res.data, to: res.participants });
+        instance.emit("groupCall", {
+            type: "CALL_RECEIVED",
+            message: "Received a call",
+            from: from,
+            call_type: res.media_type,
+            session: callType,
+            uuid: res.sessionUUID,
+            data: res.data,
+            to: res.participants
+        });
     }
     SessionStart(res, instance) {
         instance.emit("call", { type: "CALL_STARTED", message: "Call is being started" });
@@ -2507,7 +2539,12 @@ class EventHandlerService {
         instance.emit("error", { type: "PROCESS_ANSWER", message: "Unable to process remote SDP." });
     }
     SessionBreak(res, instance) {
-        instance.emit("call", { type: "SESSION_BREAK", message: "Current Call Session break with other user.", data: res.data, uuid: res.sessionUUID });
+        instance.emit("call", {
+            type: "SESSION_BREAK",
+            message: "Current Call Session break with other user.",
+            data: res.data,
+            uuid: res.sessionUUID
+        });
     }
     OnAddCandidate(error, instance) {
         instance.emit("error", { type: "CALL_ADDCANDIDATE", message: "Unable to add ice candidate." });
@@ -2516,7 +2553,12 @@ class EventHandlerService {
         instance.emit("error", { type: "CALL_OFFERGENERATING", message: "Unable to add generate incoming call offer." });
     }
     OnCustomRPC(res, instance) {
-        instance.emit("call", { type: "Custom_RPC", message: "A Custom Data Packet received.", data: res.data, uuid: res.sessionUUID });
+        instance.emit("call", {
+            type: "Custom_RPC",
+            message: "A Custom Data Packet received.",
+            data: res.data,
+            uuid: res.sessionUUID
+        });
     }
     OnRTCPeer(error, instance) {
         instance.emit("error", { type: "CALL_RTCPEER", message: "Unable to add to create webrtc peer." + error });
@@ -2525,10 +2567,24 @@ class EventHandlerService {
         let session = CommonHelper_1.GetKeyByValue(instance.UUIDSessions, res.sessionUUID);
         let callType = (res["call_type"] != undefined) ? res["call_type"] : "one_to_one";
         if (res["responseCode"] != undefined && res["responseCode"] == 487) {
-            instance.emit("call", { type: "MISSED_CALL", message: "Session canceled/Missed Call", from: session, call_type: res.media_type, session: callType, data: res.data });
+            instance.emit("call", {
+                type: "MISSED_CALL",
+                message: "Session canceled/Missed Call",
+                from: session,
+                call_type: res.media_type,
+                session: callType,
+                data: res.data
+            });
         }
         else {
-            instance.emit("call", { type: "CALL_ENDED", message: "Call is being ended", from: session, call_type: callType, uuid: res.sessionUUID, data: res.data });
+            instance.emit("call", {
+                type: "CALL_ENDED",
+                message: "Call is being ended",
+                from: session,
+                call_type: callType,
+                uuid: res.sessionUUID,
+                data: res.data
+            });
         }
     }
     SessionInvite(res, instance) {
@@ -2538,20 +2594,47 @@ class EventHandlerService {
         if (res["responseCode"] != undefined) {
             switch (res.responseCode) {
                 case 100:
-                    instance.emit("call", { type: "TRYING", message: "Trying to find the receiver", to: instance.to, call_typ: callType });
+                    instance.emit("call", {
+                        type: "TRYING",
+                        message: "Trying to find the receiver",
+                        to: instance.to,
+                        call_type: callType
+                    });
                     break;
                 case 180:
-                    instance.emit("call", { type: "CONNECTING", message: "Trying to connect the receiver", to: instance.to, call_typ: callType });
+                    instance.emit("call", {
+                        type: "CONNECTING",
+                        message: "Trying to connect the receiver",
+                        to: instance.to,
+                        call_type: callType
+                    });
                     break;
                 case 183:
-                    instance.emit("call", { type: "ALERTING", message: "Alerting the receiver", to: instance.to, call_typ: callType });
+                    instance.emit("call", {
+                        type: "ALERTING",
+                        message: "Alerting the receiver",
+                        to: instance.to,
+                        call_type: callType
+                    });
                     break;
                 case 200:
                     if (res.responseMessage == "no session exist against this URL") {
-                        instance.emit("call", { type: "SESSION_END", message: "No Session exist or Call ended.", to: instance.to, call_typ: callType, uuid: res.sessionUUID });
+                        instance.emit("call", {
+                            type: "SESSION_END",
+                            message: "No Session exist or Call ended.",
+                            to: instance.to,
+                            call_type: callType,
+                            uuid: res.sessionUUID
+                        });
                     }
                     else {
-                        instance.emit("call", { type: "CALL_ACCEPTED", message: "Call is accepted by receiver", to: instance.to, call_typ: callType, data: res.data });
+                        instance.emit("call", {
+                            type: "CALL_ACCEPTED",
+                            message: "Call is accepted by receiver",
+                            to: instance.to,
+                            call_type: callType,
+                            data: res.data
+                        });
                     }
                     break;
                 case 402:
@@ -2560,23 +2643,48 @@ class EventHandlerService {
                     instance.emit("call", { type: "INSUFFICIENT_FUNDS", message: res.responseMessage, uuid: res.sessionUUID });
                     break;
                 case 404:
-                    if (res.responseMessage == "no session exist against this URL") {
-                        instance.emit("call", { type: "SESSION_END", message: "No Session exist or Call ended.", to: instance.to, call_typ: callType, uuid: res.sessionUUID });
-                    }
-                    else {
+                    if (res.responseMessage == "invalid target") {
                         if (callType == "one_to_one" || callType == "one_to_one_with_ai")
                             instance.DisposeWebrtc(true);
-                        instance.emit("call", { type: "INVALID_TARGET", message: "Receiver is not found", to: instance.to, call_typ: callType });
+                        instance.emit("call", {
+                            type: "INVALID_TARGET",
+                            message: "Receiver is not found",
+                            to: instance.to,
+                            call_type: callType
+                        });
+                    }
+                    else {
+                        instance.emit("call", {
+                            type: "SESSION_END",
+                            message: "No Session exist or Call ended.",
+                            to: instance.to,
+                            call_type: callType,
+                            uuid: res.sessionUUID
+                        });
                     }
                     break;
                 default:
                     if (res.responseCode === 400 && res.responseMessage == "bad request") {
-                        instance.emit("call", { type: "BAD_REQUEST", message: "Please check your last RPC it is not correct!", to: instance.to, call_typ: callType, uuid: res.sessionUUID, data: res.data });
+                        instance.emit("call", {
+                            type: "BAD_REQUEST",
+                            message: "Please check your last RPC it is not correct!",
+                            to: instance.to,
+                            call_type: callType,
+                            uuid: res.sessionUUID,
+                            data: res.data
+                        });
                         return;
                     }
                     if (callType == "one_to_one" || callType == "one_to_one_with_ai")
                         instance.DisposeWebrtc(true);
-                    instance.emit("call", { type: "CALL_REJECTED", message: "Receiver has rejected the call", to: instance.to, call_typ: callType, uuid: res.sessionUUID, data: res.data });
+                    instance.emit("call", {
+                        type: "CALL_REJECTED",
+                        message: "Receiver has rejected the call",
+                        to: instance.to,
+                        call_type: callType,
+                        uuid: res.sessionUUID,
+                        data: res.data
+                    });
             }
         }
     }
@@ -2597,17 +2705,36 @@ class EventHandlerService {
         if (res["responseCode"] != undefined) {
             switch (res.responseCode) {
                 case 487:
-                    instance.emit("call", { type: "MISSED_CALL", message: "Session canceled/Missed Call", from: session, call_type: callType });
+                    instance.emit("call", {
+                        type: "MISSED_CALL",
+                        message: "Session canceled/Missed Call",
+                        from: session,
+                        call_type: callType
+                    });
                     break;
                 case 480:
-                    instance.emit("call", { type: "PARTICIPANT_UNAVAILABLE", message: "User is Unavailable", from: session, call_type: callType });
+                    instance.emit("call", {
+                        type: "PARTICIPANT_UNAVAILABLE",
+                        message: "User is Unavailable",
+                        from: session,
+                        call_type: callType
+                    });
                     break;
                 case 410:
-                    instance.emit("call", { type: "PARTICIPANT_LEFT", message: "Participant has left the call", from: res.referenceID, call_typ: callType });
+                    instance.emit("call", {
+                        type: "PARTICIPANT_LEFT",
+                        message: "Participant has left the call",
+                        from: res.referenceID,
+                        call_type: callType
+                    });
                     break;
                 case 401:
                     console.log("SessionCancel i'm here", { res });
-                    instance.emit("call", { type: "SESSION_BLOCKED", message: "Show has blocked by provider", uuid: res.sessionUUID });
+                    instance.emit("call", {
+                        type: "SESSION_BLOCKED",
+                        message: "Show has blocked by provider",
+                        uuid: res.sessionUUID
+                    });
                     break;
                 case 402:
                     console.log("SessionCancel i'm here", { res });
@@ -2615,12 +2742,23 @@ class EventHandlerService {
                     break;
                 case 403:
                     console.log("SessionCancel i'm here", { res });
-                    instance.emit("call", { type: "SESSION_SUSPENSION", message: "Show has suspended by provider", uuid: res.sessionUUID });
+                    instance.emit("call", {
+                        type: "SESSION_SUSPENSION",
+                        message: "Show has suspended by provider",
+                        uuid: res.sessionUUID
+                    });
                     break;
                 default:
                     // if(callType=="one_to_one")
                     instance.DisposeWebrtc(false);
-                    instance.emit("call", { type: "CALL_ENDED", message: "Call is being ended", to: instance.to, call_typ: callType, uuid: res.sessionUUID, data: res.data });
+                    instance.emit("call", {
+                        type: "CALL_ENDED",
+                        message: "Call is being ended",
+                        to: instance.to,
+                        call_type: callType,
+                        uuid: res.sessionUUID,
+                        data: res.data
+                    });
             }
         }
     }
@@ -2636,10 +2774,20 @@ class EventHandlerService {
         });
     }
     PublicURL(res, instance) {
-        instance.emit("call", { type: "PUBLIC_URL", message: "Public URL Available for Broadcast!", url: res.url, uuid: res.sessionUUID });
+        instance.emit("call", {
+            type: "PUBLIC_URL",
+            message: "Public URL Available for Broadcast!",
+            url: res.url,
+            uuid: res.sessionUUID
+        });
     }
     OnNewParticipant(res, instance) {
-        instance.emit("call", { type: "NEW_PARTICIPANT", message: "New participant arrived.", participant: res.referenceID, uuid: res.sessionUUID });
+        instance.emit("call", {
+            type: "NEW_PARTICIPANT",
+            message: "New participant arrived.",
+            participant: res.referenceID,
+            uuid: res.sessionUUID
+        });
     }
     screenOffByUser(res, instance) {
         instance.emit("call", { type: "SCREEN_OFF", message: "User turned off screen", uuid: res.sessionUUID });
@@ -2653,7 +2801,11 @@ class EventHandlerService {
      *
      */
     SetExistingParticipants(res, instance) {
-        instance.emit("groupCall", { type: "PARTICIPANT_LIST", message: "Participant List is available", participant_list: res.referenceIDs });
+        instance.emit("groupCall", {
+            type: "PARTICIPANT_LIST",
+            message: "Participant List is available",
+            participant_list: res.referenceIDs
+        });
     }
     SetParticipantStatus(res, instance) {
         instance.emit("groupCall", {
@@ -8140,7 +8292,10 @@ class SingleStreamHelper {
         }
         const options = { audio: false, video: false };
         if (audio) {
-            options.audio = true;
+            options.audio = {
+                echoCancellation: true,
+                noiseSuppression: true,
+            };
         }
         if (video && type == "camera") {
             if (this.aStream) {
@@ -8172,7 +8327,12 @@ class SingleStreamHelper {
         }
         this.aStream = new MediaStream();
         if (options.audio || options.video) {
-            this.aStream = await navigator.mediaDevices.getUserMedia(options);
+            try {
+                this.aStream = await navigator.mediaDevices.getUserMedia(options);
+            }
+            catch (e) {
+                console.error(e);
+            }
         }
         if (options.audio && this.aStream) {
             this.audioStream = new MediaStream(this.aStream.getAudioTracks());
