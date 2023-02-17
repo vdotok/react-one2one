@@ -1,5 +1,5 @@
 /*!
- *
+ * 
  *  VdoTok Call version 0.17.1
  */
 window["CVDOTOK"] =
@@ -425,11 +425,10 @@ class Client extends events_1.EventEmitter {
                     break;
                 case 'onIceCandidate':
                     if (messageData.responseCode == 400) {
-                        EventHandler.OnAddCandidate(messageData.message, this);
+                        EventHandler_1.default.OnAddCandidate(messageData.message, this);
                     }
-                    else
-                    {
-                        console.error("Unhandled Ice event", messageData)
+                    else {
+                        console.error("Unhandled Ice event", messageData);
                     }
                     break;
                 case 'session_pong':
@@ -1068,10 +1067,17 @@ class Client extends events_1.EventEmitter {
                 minFrameRate: 15,
             }
         };
+        let audioConstraints = {
+            echoCancellation: true,
+            noiseSuppression: true
+        };
+        if (!params.audio) {
+            audioConstraints = false;
+        }
         if (!params.video)
             vidContraints = false;
         var constraints = {
-            audio: params.audio,
+            audio: audioConstraints,
             video: vidContraints
         };
         CommonHelper_1.SetPlaysInline(params.localVideo);
@@ -3797,9 +3803,9 @@ exports.default = ManyToManyClass;
 /**
  * This module contains a set of reusable components that have been found useful
  * during the development of the WebRTC applications with Kurento.
- *
+ * 
  * @module kurentoUtils
- *
+ * 
  * @copyright 2014 Kurento (http://kurento.org/)
  * @license ALv2
  */
@@ -4971,7 +4977,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment.
+   Supports browser & node.js environment. 
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////
@@ -6293,7 +6299,7 @@ WildEmitter.mixin(WildEmitter);
 ;(function(isNode) {
 
 	/**
-	 * Merge one or more objects
+	 * Merge one or more objects 
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -6306,7 +6312,7 @@ WildEmitter.mixin(WildEmitter);
 	}, publicName = 'merge';
 
 	/**
-	 * Merge two or more objects recursively
+	 * Merge two or more objects recursively 
 	 * @param bool? clone
 	 * @param mixed,... arguments
 	 * @return object
@@ -8826,7 +8832,7 @@ class ScreenSharingMobile {
             // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
             // @ts-ignore
             // eslint-disable-next-line @typescript-eslint/no-this-alias
-            const context = this,
+            const context = this, 
             // eslint-disable-next-line prefer-rest-params
             args = arguments;
             const later = function () {
@@ -8865,7 +8871,7 @@ class ScreenSharingMobile {
                 async : true, // setting it to false may slow the generation a bit down
                 allowTaint : true,
                 foreignObjectRendering : true,*!/
-
+    
           imageTimeout: 800, // this further delays loading, however this solved a no images in captured screenshot issue
           logging: false,
         });*/
@@ -15891,7 +15897,7 @@ ScreenSharingMobile.onceAutoScrollDone = false;
                         case 4:
                             _i++;
                             return [3 /*break*/, 2];
-                        case 5:
+                        case 5: 
                         // 3. For all its in-flow, non-positioned, block-level descendants in tree order:
                         return [4 /*yield*/, this.renderNodeContent(stack.element)];
                         case 6:
@@ -17521,7 +17527,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment.
+   Supports browser & node.js environment. 
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////

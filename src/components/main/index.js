@@ -161,6 +161,7 @@ function Main(props) {
             case "MISSED_CALL":
             //case "PARTICIPANT_LEFT":
             case "CALL_ENDED":
+                return endCallHandler();
             case "SESSION_END":
             case "PARTICIPANT_UNAVAILABLE" :
             case "INVALID_TARGET" :
