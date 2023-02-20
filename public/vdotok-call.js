@@ -894,6 +894,7 @@ class Client extends events_1.EventEmitter {
     }
     async AcceptCall(params) {
         return new Promise(async (resolve, rejects) => {
+            var _a, _b, _c;
             this.localVideo = params.localVideo;
             let from = this.currentFromUser;
             let uUID = params.uUID = params.sessionUUID;
@@ -901,6 +902,9 @@ class Client extends events_1.EventEmitter {
             this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
             this.audioStatus[uUID] = (params.audio ? 1 : 0);
             this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
+            this.UUIDSessions[from] = (_a = this.UUIDSessions[from]) !== null && _a !== void 0 ? _a : uUID;
+            this.UUIDSessionTypes[uUID] = (_b = this.UUIDSessionTypes[uUID]) !== null && _b !== void 0 ? _b : "one_to_one";
+            this.UUIDSessionMediaTypes[from] = (_c = this.UUIDSessionMediaTypes[from]) !== null && _c !== void 0 ? _c : (!params.video ? 'audio' : 'video');
             let options = {};
             params.to = [this.currentUser];
             try {
@@ -1425,8 +1429,8 @@ class Client extends events_1.EventEmitter {
                         if (this.webRtcPeers[uUID] && this.webRtcPeers[uUID].peerConnection) {
                             this.webRtcPeers[uUID].peerConnection.removeEventListener("iceconnectionstatechange", this.onIceError, false);
                         }
-                        this.deleteIndex(this.webRtcPeers, uUID);
-                        this.deleteIndex(this.sessionInfo, uUID);
+                        delete this.webRtcPeers[uUID];
+                        delete this.sessionInfo[uUID];
                     }
                 }
             }
@@ -1441,8 +1445,8 @@ class Client extends events_1.EventEmitter {
             this.sendDisposePacket(this.UUIDSessions[from]);
         }
         let session = this.UUIDSessions[from];
-        this.deleteIndex(this.UUIDSessionTypes, session);
-        this.deleteIndex(this.UUIDSessions, from);
+        delete this.UUIDSessionTypes[session];
+        delete this.UUIDSessions[from];
         /*if(this.pingWorker)
         {
           this.pingWorker.postMessage({method: 'clearPingInterval'});
@@ -1913,9 +1917,6 @@ class Client extends events_1.EventEmitter {
         }
         this.webRtcPeers = [];
         this.sessionInfo = [];
-    }
-    deleteIndex(dataArray, indexToDelete) {
-        dataArray.splice(indexToDelete, indexToDelete);
     }
 }
 exports.default = Client;
