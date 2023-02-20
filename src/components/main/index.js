@@ -182,16 +182,26 @@ function Main(props) {
         e.preventDefault();
         e.returnValue = "";
         // console.log("hello");
-        setPresistCallData({
-            callType,
-            audio,
-            camera,
-            video,
-            uuid,
-            receivedRes,
-            callMessage,
-            reconnectCall: uuid ? true : false,
-        });
+        console.log("my log",callMessage);
+        if(["Ringing", "Calling"].includes(callMessage))
+        {//if call is in ringing or alerting mode then no need to save call
+            vdotokClient.EndCall()
+            setPresistCallData({});
+        }
+        else
+        {
+            setPresistCallData({
+                callType,
+                audio,
+                camera,
+                video,
+                uuid,
+                receivedRes,
+                callMessage,
+                reconnectCall: uuid ? true : false,
+            });
+        }
+
         // alert("unload");
     });
     useEffect(() => {
