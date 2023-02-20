@@ -222,9 +222,10 @@ function Main(props) {
             projectID: PROJECT_ID,
             host: `${user.media_server_map.complete_address}`,
             //host: "wss://q-signalling.vdotok.dev:8443/call",
-            stunServer: user.stun_server_map
+            stunServer: "r-stun1.vdotok.dev:3478",
+            /*stunServer: user.stun_server_map
                 ? user.stun_server_map.complete_address
-                : "",
+                : "",*/
         });
         Client.on("connected", (res) => {
             console.log("** vdotok SDK connected", {res});
