@@ -957,9 +957,12 @@ class Client extends events_1.EventEmitter {
             }
         });
     }
-    RejectCall(from = null, disposeWebRTC = true) {
+    RejectCall(from = null, uuid = null) {
         if (!from) {
             from = this.currentFromUser;
+        }
+        if (!uuid) {
+            uuid = this.UUIDSessions[from];
         }
         // var response = {
         // 	id : 'incomingCallResponse',
@@ -972,12 +975,12 @@ class Client extends events_1.EventEmitter {
             "type": "response",
             "from": from,
             "requestID": new Date().getTime().toString(),
-            "sessionUUID": this.UUIDSessions[from],
+            "sessionUUID": uuid,
             "responseCode": 496,
             "responseMessage": "rejected"
         };
         this.SendPacket(response);
-        this.DisposeWebrtc(false, from, disposeWebRTC);
+        this.DisposeWebrtc(false, from, uuid);
     }
     sendSessionBusy(from = null) {
         if (!from) {
@@ -1415,7 +1418,7 @@ class Client extends events_1.EventEmitter {
             }, this);
         }
     }
-    DisposeWebrtc(status, from = null, disposeWebRTC = true, onlyUUID = null) {
+    DisposeWebrtc(status, from = null, onlyUUID = null) {
         if (!from) {
             from = this.currentFromUser;
         }
@@ -1425,7 +1428,9 @@ class Client extends events_1.EventEmitter {
                  {
                     if (this.webRtcPeers.hasOwnProperty(uUID)) {
                         this.webRtcPeers[uUID].dispose();
-                        this.sendDisposePacket(uUID);
+                        if (status) {
+                            this.sendDisposePacket(uUID);
+                        }
                         if (this.webRtcPeers[uUID] && this.webRtcPeers[uUID].peerConnection) {
                             this.webRtcPeers[uUID].peerConnection.removeEventListener("iceconnectionstatechange", this.onIceError, false);
                         }
@@ -1436,10 +1441,8 @@ class Client extends events_1.EventEmitter {
             }
         }
         if (this.webRtcPeer) {
-            if (disposeWebRTC) {
-                this.webRtcPeer.dispose();
-                this.webRtcPeer = null;
-            }
+            this.webRtcPeer.dispose();
+            this.webRtcPeer = null;
         }
         if (status) {
             this.sendDisposePacket(this.UUIDSessions[from]);
