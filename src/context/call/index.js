@@ -1,4 +1,4 @@
-import React, { useState, createContext, useReducer } from "react";
+import React, {useState, createContext, useReducer, useRef} from "react";
 export const CallContext = createContext();
 
 const initialState = {
@@ -75,9 +75,10 @@ const reducer = (state, action) => {
 const CallContextProvider = (props) => {
   const { children } = props;
   const [state, dispatch] = useReducer(reducer, initialState);
+  const callTypeRef = useRef(state.callType);
 
   return (
-    <CallContext.Provider value={{ state, dispatch }}>
+    <CallContext.Provider value={{ state, dispatch, callTypeRef }}>
       {children}
     </CallContext.Provider>
   );

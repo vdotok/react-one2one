@@ -97,6 +97,7 @@ function CallModal(props) {
   const {
     state: { receivedRes },
     dispatch: callDispatch,
+      callTypeRef
   } = useContext(CallContext);
 
   const { vdotokClient } = useContext(VdotokClientContext);
@@ -112,11 +113,13 @@ function CallModal(props) {
 
   const startAudioCall = () => {
     callDispatch({ type: "SET_CALL_TYPE", payload: "audio" });
+      callTypeRef.current = "audio"
     setShowModal(false);
   };
 
   const startVideoCall = () => {
     callDispatch({ type: "SET_CALL_TYPE", payload: "video" });
+      callTypeRef.current = "video"
     setShowModal(false);
   };
 
@@ -128,6 +131,8 @@ function CallModal(props) {
   const acceptCall = () => {
     userDispatch({ type: "SELECT_USER", payload: getUser });
     callDispatch({ type: "SET_CALL_TYPE", payload: receivedRes.call_type });
+
+      callTypeRef.current = receivedRes.call_type
     setShowModal(false);
   };
 

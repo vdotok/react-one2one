@@ -34,7 +34,8 @@ const MainContainer = styled.div`
 function Main(props) {
     const {children} = props;
     const [isReload, setIsReload] = useState(false);
-    const {vdotokClient, setVdotokClient} = useContext(VdotokClientContext);
+    const [rejectedCalls, setRejectedCalls] = useState([]);
+    const {vdotokClient, setVdotokClient, vdotokClientRef} = useContext(VdotokClientContext);
     const {
         state: {selectedUser, usersList},
         dispatch: userDispatch,
@@ -52,6 +53,7 @@ function Main(props) {
             callMessage,
         },
         dispatch: callDispatch,
+        callTypeRef
     } = useContext(CallContext);
     const [user] = useLocalStorage("user", {});
     const [presistCallData, setPresistCallData] = useLocalStorage(
@@ -70,7 +72,16 @@ function Main(props) {
         });
     };
 
+    console.log("*** outside ", {callType})
     const receiverHandler = (receiverRes) => {
+        console.log("*** ", {callType: callTypeRef.current, receiverRes})
+        if(callTypeRef.current)
+        {
+            setRejectedCalls([...rejectedCalls, receiverRes.uuid])
+            vdotokClientRef.current.RejectCall(receiverRes.from);
+            //If user is already in call then rejecting new calls
+            return;
+        }
         const findUser = [...usersListRef.current].find(
             (user) => user.ref_id === receiverRes.from
         );
@@ -112,6 +123,7 @@ function Main(props) {
             findUser,
         });
         callDispatch({type: "SET_CALL_TYPE", payload: null});
+        callTypeRef.current = null
         callDispatch({
             type: "CALL_MESSAGE",
             payload: "",
@@ -119,6 +131,7 @@ function Main(props) {
     };
 
     const endCallHandler = () => {
+        callTypeRef.current = null
         callDispatch({type: "RESET_CALL_STATE"});
     };
 
@@ -144,6 +157,12 @@ function Main(props) {
     };
 
     const onCallResponseHandler = (response) => {
+        if(response.uuid && rejectedCalls.includes(response.uuid))
+        {
+            console.log("not processing response of a rejected call, ", response, rejectedCalls)
+            //No need to process events of already rejected calls
+            return;
+        }
         switch (response.type) {
             case "CALL_RECEIVED":
                 return receiverHandler(response);
@@ -222,10 +241,9 @@ function Main(props) {
             projectID: PROJECT_ID,
             host: `${user.media_server_map.complete_address}`,
             //host: "wss://q-signalling.vdotok.dev:8443/call",
-            stunServer: "r-stun1.vdotok.dev:3478",
-            /*stunServer: user.stun_server_map
+            stunServer: user.stun_server_map
                 ? user.stun_server_map.complete_address
-                : "",*/
+                : "",
         });
         Client.on("connected", (res) => {
             console.log("** vdotok SDK connected", {res});
@@ -241,6 +259,7 @@ function Main(props) {
             console.log("## Call res", {res});
             onCallResponseHandler(res);
         });
+        vdotokClientRef.current = Client
         setVdotokClient(Client);
     };
 
