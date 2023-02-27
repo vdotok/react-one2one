@@ -390,6 +390,11 @@ class Client extends events_1.EventEmitter {
                     //this.SessionCancel(messageData, 'break');
                     //this.DisposeWebrtc(true);
                     break;
+                case 'session_busy':
+                    EventHandler_1.default.SessionBusy(messageData, this);
+                    //this.SessionCancel(messageData, 'break');
+                    //this.DisposeWebrtc(true);
+                    break;
                 case 'state_information':
                     console.log("===onParticipantOffer== exiting left", messageData, new Date().toLocaleTimeString());
                     this.SetCallerStatus(messageData);
@@ -2715,6 +2720,21 @@ class EventHandlerService {
                         data: res.data
                     });
             }
+        }
+    }
+    SessionBusy(res, instance) {
+        if (res.responseCode === 486) {
+            let session = CommonHelper_1.GetKeyByValue(instance.UUIDSessions, res.sessionUUID);
+            instance.emit("call", {
+                type: "CALL_REJECTED",
+                message: "User is Busy",
+                from: session,
+                call_type: res.call_type,
+                uuid: res.sessionUUID
+            });
+        }
+        else {
+            console.log(res.responseMessage);
         }
     }
     SessionCancel(res, instance) {

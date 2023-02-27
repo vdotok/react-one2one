@@ -78,7 +78,7 @@ function Main(props) {
         if(callTypeRef.current)
         {
             setRejectedCalls([...rejectedCalls, receiverRes.uuid])
-            vdotokClientRef.current.RejectCall(receiverRes.from);
+            vdotokClientRef.current.sendSessionBusy(receiverRes.from);
             //If user is already in call then rejecting new calls
             return;
         }
@@ -128,6 +128,8 @@ function Main(props) {
             type: "CALL_MESSAGE",
             payload: "",
         });
+        if(rejectRes.message)
+         alert(rejectRes.message)
     };
 
     const endCallHandler = () => {
