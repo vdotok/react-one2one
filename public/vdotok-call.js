@@ -242,6 +242,7 @@ class Client extends events_1.EventEmitter {
     }
     async onOffline() {
         //closing socket immediately once offline event received
+        this.socketState = "disconnected";
         this.ws.close();
     }
     afterOnlineProcess() {
