@@ -319,6 +319,10 @@ class Client extends events_1.EventEmitter {
                         }
                         messageData.data.stateInfo = { audio: 1, video: isVideoCall };
                     }
+                    if (messageData.turn_credentials) {
+                        this.turnConfigs = messageData.turn_credentials;
+                        this.turnConfigs.status = true;
+                    }
                     EventHandler_1.default.OnIncomingCall(messageData, this);
                     // this.incomingCall(messageData);
                     break;
@@ -1068,6 +1072,11 @@ class Client extends events_1.EventEmitter {
         return this.Broadcasting(params);
     }
     async createOptions(params) {
+        let isInitiator = false;
+        if (this.sessionInfo && this.sessionInfo[params.uUID]) {
+            isInitiator = this.sessionInfo[params.uUID].isInitiator;
+            params.isPeer = this.sessionInfo[params.uUID].isPeer;
+        }
         let vidContraints = {
             mandatory: {
                 maxFrameRate: 30,
@@ -1126,40 +1135,49 @@ class Client extends events_1.EventEmitter {
         }
         this.nativeScreenShare[params.uUID] = streams.nativeScreenShare;
         if (params.isPeer) {
-            return new Promise((resolve, rejects) => {
-                this.sendStateRPC({}, -1, 0, 'session_init', {
-                    to: params.to,
-                    from: this.currentFromUser,
-                    media_type: (!params.video ? 'audio' : 'video'),
-                    session_type: "call",
-                    call_type: "one_to_one"
-                });
-                let initInterval = setInterval(() => {
-                    if (this.turnConfigs && this.turnConfigs.receiver_status && !this.turnConfigs.receiver_status.status) {
-                        this.onErrorHandler();
-                        rejects({ status: false, message: "User is offline!" });
-                    }
-                    if (this.turnConfigs) {
-                        clearInterval(initInterval);
-                        if (this.turnConfigs.status) {
-                            options.configuration = {
-                                iceServers: [{
-                                        urls: [
-                                            "stun:" + this.stunServer,
-                                        ]
-                                    }, {
-                                        username: this.turnConfigs.username,
-                                        credential: this.turnConfigs.credential,
-                                        urls: this.turnConfigs.url
-                                    }]
-                            };
+            if (isInitiator) {
+                return new Promise((resolve, rejects) => {
+                    this.sendStateRPC({}, -1, 0, 'session_init', {
+                        to: params.to,
+                        from: this.currentFromUser,
+                        media_type: (!params.video ? 'audio' : 'video'),
+                        session_type: "call",
+                        call_type: "one_to_one"
+                    });
+                    let initInterval = setInterval(() => {
+                        if (this.turnConfigs && this.turnConfigs.receiver_status && !this.turnConfigs.receiver_status.status) {
+                            this.onErrorHandler();
+                            rejects({ status: false, message: "User is offline!" });
                         }
-                        this.turnConfigs = null;
-                        resolve(options);
-                    }
-                }, 100);
-            });
+                        if (this.turnConfigs) {
+                            clearInterval(initInterval);
+                            options = this.setStunTurn(options);
+                            resolve(options);
+                        }
+                    }, 100);
+                });
+            }
+            else {
+                options = this.setStunTurn(options);
+            }
         }
+        return options;
+    }
+    setStunTurn(options) {
+        if (this.turnConfigs.status) {
+            options.configuration = {
+                iceServers: [{
+                        urls: [
+                            "stun:" + this.stunServer,
+                        ]
+                    }, {
+                        username: this.turnConfigs.username,
+                        credential: this.turnConfigs.credential,
+                        urls: this.turnConfigs.url
+                    }]
+            };
+        }
+        this.turnConfigs = null;
         return options;
     }
     async startScreenShare(uUID, extraData = null) {

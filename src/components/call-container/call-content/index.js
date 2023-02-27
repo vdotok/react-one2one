@@ -86,13 +86,13 @@ function CallContent() {
   };
 
   useEffect(() => {
-    console.log("## call res receivedRes", { receivedRes, video });
+    console.log("## call res receivedRes", { receivedRes, video, reconnectCall });
     let call = setTimeout(() => {
-      if (receivedRes.type === "CALL_RECEIVED") {
+      if (receivedRes.type === "CALL_RECEIVED" && !reconnectCall) {
         return acceptCallHandler();
       }
       return callHandler();
-    }, 1000);
+    }, 2000);
 
     return () => {
       console.log("claer");
