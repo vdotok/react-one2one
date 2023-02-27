@@ -115,13 +115,16 @@ function Main(props) {
     };
 
     const rejectCallHandler = (rejectRes) => {
-        const findUser = usersListRef.current.find((user) =>
-            rejectRes.to.some((res) => res === user.ref_id)
-        );
-        console.log("## rejectCallHandler", {
-            rejectRes,
-            findUser,
-        });
+        if(rejectRes.to)
+        {
+            const findUser = usersListRef.current.find((user) =>
+                rejectRes.to.some((res) => res === user.ref_id)
+            );
+            console.log("## rejectCallHandler", {
+                rejectRes,
+                findUser,
+            });
+        }
         callDispatch({type: "SET_CALL_TYPE", payload: null});
         callTypeRef.current = null
         callDispatch({
