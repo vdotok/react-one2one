@@ -241,7 +241,8 @@ class Client extends events_1.EventEmitter {
     async onOffline() {
         //closing socket immediately once offline event received
         this.socketState = "disconnected";
-        this.ws.close();
+        this.ws.close(1001, "Internet disconnected");
+        console.info("You are offline!");
     }
     afterOnlineProcess() {
         let socketCheckInterval = setInterval(async () => {
@@ -263,9 +264,9 @@ class Client extends events_1.EventEmitter {
     }
     Connect(mediaServer, selfReconnect = false) {
         this.socketState = "connecting";
-        var webSocketConnetion = new WebSocket(mediaServer);
+        this.ws = new WebSocket(mediaServer);
         this.mediaServer = mediaServer;
-        webSocketConnetion.onmessage = (message) => {
+        this.ws.onmessage = (message) => {
             var messageData = JSON.parse(message.data);
             console.log('Received message: ', messageData);
             switch (messageData.requestType) {
@@ -463,7 +464,7 @@ class Client extends events_1.EventEmitter {
                 // console.error('Unrecognized message', messageData);
             }
         };
-        webSocketConnetion.onclose = (res) => {
+        this.ws.onclose = (res) => {
             this.socketState = "disconnected";
             //EventHandler.OnDisconnection(res,this);
             console.log("OnClose socket==", res);
@@ -496,7 +497,7 @@ class Client extends events_1.EventEmitter {
                 }
             }, 2000);
         };
-        webSocketConnetion.onopen = (res) => {
+        this.ws.onopen = (res) => {
             if (this.socketCloseCheck) {
                 clearInterval(this.socketCloseCheck);
             }
@@ -508,16 +509,15 @@ class Client extends events_1.EventEmitter {
             }
             console.log("OnOpen socket==", res);
         };
-        //   webSocketConnetion.onmessage=(res:any)=>{
+        //   this.ws.onmessage=(res:any)=>{
         // 	console.log("OnMessage socket==",res);
         //   };
-        webSocketConnetion.onerror = (res) => {
+        this.ws.onerror = (res) => {
             this.socketState = "disconnected";
             EventHandler_1.default.OnDisconnection(res, this);
             console.log("OnError socket==", res);
             this.emit("call", { type: "SOCKET_DROPPED", message: "socket is dropped", uuid: res.sessionUUID });
         };
-        this.ws = webSocketConnetion;
     }
     OnCustomRPC(data) {
         EventHandler_1.default.OnCustomRPC(data, this);
@@ -1911,7 +1911,7 @@ class Client extends events_1.EventEmitter {
         }
         this.selfClose = true;
         if (this.ws) {
-            this.ws.close();
+            this.ws.close(1000, "Work complete");
         }
         this.webRtcPeers = [];
         this.sessionInfo = [];
