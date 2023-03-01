@@ -3562,8 +3562,9 @@ class SingleStreamHelper {
                     }
                     candidates[cand.relatedPort].push(cand);
                     this.publicIps.push(cand.ip + ":" + cand.port);
+                    //@ts-ignore
                 }
-                else if (!e.candidate) {
+                else if (!e.candidate || (e.target && e.target.iceGatheringState === 'complete')) {
                     if (Object.keys(candidates).length === 1) {
                         const ports = candidates[Object.keys(candidates)[0]];
                         const NatType = ports.length === 1 ? "normal" : "symmetric";
