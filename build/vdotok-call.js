@@ -240,6 +240,7 @@ class Client extends events_1.EventEmitter {
     }
     async onOffline() {
         //closing socket immediately once offline event received
+        this.ws.close();
         this.socketState = "disconnected";
         this.emit("call", { type: "SOCKET_DROPPED", message: "socket is dropped" });
         console.info("You are offline!");
