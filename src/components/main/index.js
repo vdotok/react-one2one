@@ -133,7 +133,7 @@ function Main(props) {
       type: "CALL_MESSAGE",
       payload: "",
     });
-    if (rejectRes.message) alert(rejectRes.message);
+    if (rejectRes.message) displayMsg(rejectRes.message, 'error');
   };
 
   const endCallHandler = () => {
@@ -195,7 +195,7 @@ function Main(props) {
       case "INVALID_TARGET":
       case "BAD_REQUEST":
         //case "SOCKET_DROPPED":
-        alert(response.message);
+        displayMsg(response.message, "error");
         return endCallHandler();
       case "SOCKET_DROPPED":
         displayMsg("Connection closed", "error");

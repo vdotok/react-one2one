@@ -19,7 +19,7 @@ const SnackbarContextProvider = (props) => {
     setIsDisplayed(true);
     timer = setTimeout(() => {
       closeHandler();
-    }, 5000); // close snackbar after 3 seconds
+    }, 3000); // close snackbar after 3 seconds
   };
   const closeHandler = () => {
     clearTimeout(timer);
