@@ -641,6 +641,7 @@ class Client extends events_1.EventEmitter {
             params.call_type = (_a = params.call_type) !== null && _a !== void 0 ? _a : "one_to_one";
             params.isInitiator = params.hasOwnProperty('isInitiator') ? params.isInitiator : 1;
             params.isPeer = params.hasOwnProperty('isPeer') ? params.isPeer : 1;
+            this.currentFromUser = this.currentUser;
             let options = {};
             try {
                 options = await this.createOptions(params);
@@ -868,13 +869,13 @@ class Client extends events_1.EventEmitter {
         params.isInitiator = 0;
         params.isPeer = params.hasOwnProperty('isPeer') ? params.isPeer : 1;
         return new Promise(async (resolve, rejects) => {
-            var _a, _b, _c;
+            var _a, _b;
             this.localVideo = params.localVideo;
             let from = this.currentFromUser;
             let uUID = params.uUID = params.sessionUUID;
-            this.UUIDSessions[from] = (_a = this.UUIDSessions[from]) !== null && _a !== void 0 ? _a : uUID;
-            this.UUIDSessionTypes[uUID] = (_b = this.UUIDSessionTypes[uUID]) !== null && _b !== void 0 ? _b : "one_to_one";
-            this.UUIDSessionMediaTypes[from] = (_c = this.UUIDSessionMediaTypes[from]) !== null && _c !== void 0 ? _c : (!params.video ? 'audio' : 'video');
+            this.UUIDSessions[from] = this.UUIDSessions[from] ? this.UUIDSessions[from] : uUID;
+            this.UUIDSessionTypes[uUID] = (_a = this.UUIDSessionTypes[uUID]) !== null && _a !== void 0 ? _a : "one_to_one";
+            this.UUIDSessionMediaTypes[from] = (_b = this.UUIDSessionMediaTypes[from]) !== null && _b !== void 0 ? _b : (!params.video ? 'audio' : 'video');
             let options = {};
             params.to = [this.currentUser];
             try {
@@ -1048,7 +1049,6 @@ class Client extends events_1.EventEmitter {
         params.sessionUUID = params.uUID = uUID;
         this.sessionInfo[uUID].mediaType = this.mediaType = params.video ? "video" : "audio";
         this.to = params.to === "" || Array.isArray(params.to) ? params.to : [params.to];
-        this.currentFromUser = this.currentUser;
         params.assUUID = (params.hasOwnProperty("associatedSessionUUID")) ? params["associatedSessionUUID"] : "";
         params.isPublic = (params.hasOwnProperty("broadcastType")) ? params["broadcastType"] : 0;
         if (!params.data) {
@@ -1079,7 +1079,7 @@ class Client extends events_1.EventEmitter {
         (0, CommonHelper_1.SetPlaysInline)(params.localVideo);
         var options = {
             mediaConstraints: constraints,
-            onicecandidate: (candidate) => this.onIceCandidate(candidate, this.sessionInfo[params.uUID].isInitiator ? this.currentUser : this.currentFromUser),
+            onicecandidate: (candidate) => this.onIceCandidate(candidate, params.uUID),
             onerror: this.onError,
             status: true
         };
@@ -1438,15 +1438,15 @@ class Client extends events_1.EventEmitter {
     onError(error) {
         EventHandler_1.default.OnRTCPeer(error, this);
     }
-    onIceCandidate(candidate, referenceID) {
+    onIceCandidate(candidate, uUID) {
         console.log("Local candidate" + JSON.stringify(candidate));
         var message = {
             id: 'onIceCandidate',
             requestType: 'onIceCandidate',
             type: "request",
             candidate: candidate,
-            referenceID: referenceID,
-            sessionUUID: this.UUIDSessions[referenceID]
+            referenceID: this.currentUser,
+            sessionUUID: uUID
         };
         console.log("Local candidate Msg", message);
         this.SendPacket(message);
