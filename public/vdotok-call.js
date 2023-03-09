@@ -1,5 +1,5 @@
 /*!
- *
+ * 
  *  VdoTok Call version 0.17.1
  */
 window["CVDOTOK"] =
@@ -185,7 +185,6 @@ class Client extends events_1.EventEmitter {
         this.reconnectCount = [];
         this.selfClose = false;
         this.projectID = _Credentials.projectID;
-        this.projectSecret = _Credentials.secret;
         this.stunServer = _Credentials.stunServer;
         if (!this.stunServer) {
             EventHandler_1.default.OnAuthError("Please provide STUN server address!", this);
@@ -195,8 +194,8 @@ class Client extends events_1.EventEmitter {
             EventHandler_1.default.OnAuthError("Please provide your Project ID!", this);
             return;
         }
-        if (!this.stunServer) {
-            EventHandler_1.default.OnAuthError("Please provide your Project secret!", this);
+        if (!_Credentials.host) {
+            EventHandler_1.default.OnAuthError("Please provide host address!", this);
             return;
         }
         this.Authentication(_Credentials);
@@ -370,7 +369,15 @@ class Client extends events_1.EventEmitter {
                     if (messageData.responseCode == 200 && messageData.turn_credentials) {
                         this.turnConfigs = messageData.turn_credentials;
                         this.turnConfigs.status = true;
-                        this.turnConfigs.receiver_status = messageData.receiver_status[0]; //TODO first participant is used for one to one call, in cass of many to many need different logic
+                        let online_receivers = [];
+                        if (messageData.receiver_status) {
+                            messageData.receiver_status.forEach((receiver) => {
+                                if (receiver.status) {
+                                    online_receivers.push(receiver.referenceID);
+                                }
+                            });
+                        }
+                        this.turnConfigs.receivers = online_receivers;
                     }
                     else {
                         this.turnConfigs = { status: false };
@@ -528,20 +535,20 @@ class Client extends events_1.EventEmitter {
         return socket.readyState !== WebSocket.CLOSED && socket.readyState !== WebSocket.CLOSING;
     }
     autoReconnectCall(uUID, params = null) {
-        var _a, _b, _c, _d;
+        var _a, _b;
         params = params || (this.sessionInfo[uUID] && this.sessionInfo[uUID].currentCallParams ? this.sessionInfo[uUID].currentCallParams : null);
         if (params) {
             if (params.videoType === 'screen' && this.localVideos[uUID]) {
                 this.localVideos[uUID].srcObject.getAudioTracks()[0].stop();
             }
-            params.video = this.videoStatus[uUID] || ((_a = params.video) !== null && _a !== void 0 ? _a : 1);
-            params.audio = this.audioStatus[uUID] || ((_b = params.audio) !== null && _b !== void 0 ? _b : 1);
+            params.video = this.videoStatus[uUID] ? 1 : (params.video ? 1 : 0);
+            params.audio = this.audioStatus[uUID] ? 1 : (params.audio ? 1 : 0);
             params.re_invite = 1;
             params.ref_id = this.currentUser || params.ref_id;
             params.sessionUUID = uUID;
-            params.isPeer = this.sessionInfo[uUID] ? this.sessionInfo[uUID].isPeer : ((_c = params.isPeer) !== null && _c !== void 0 ? _c : 1);
-            params.call_type = this.sessionInfo[uUID] ? this.sessionInfo[uUID].call_type : ((_d = params.call_type) !== null && _d !== void 0 ? _d : "one_to_one");
-            params.data = params.data || {};
+            params.isPeer = this.sessionInfo[uUID] ? this.sessionInfo[uUID].isPeer : (params.isPeer ? 1 : 0);
+            params.call_type = this.sessionInfo[uUID] ? this.sessionInfo[uUID].call_type : ((_a = params.call_type) !== null && _a !== void 0 ? _a : "one_to_one");
+            params.data = (_b = params.data) !== null && _b !== void 0 ? _b : {};
             if (params.call_type === 'one_to_many') {
                 return this.PulicBroadCast(params);
             }
@@ -628,28 +635,12 @@ class Client extends events_1.EventEmitter {
     }
     ///////////////////////////////////////////////
     ///////////////////// one to one call
-    async Call(params) {
+    async Call(params, withStreamHelper = false) {
         return new Promise(async (resolve, rejects) => {
-            if (this.socketState !== "registered") {
-                rejects({ message: "Not registered with vdotok! Current state -> " + this.socketState, status: false });
-                return;
-            }
-            let uUID = (params.hasOwnProperty("sessionUUID")) ? params["sessionUUID"] : new Date().getTime().toString();
-            this.videoStatus[uUID] = (params.video ? 1 : 0);
-            this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
-            this.audioStatus[uUID] = (params.audio ? 1 : 0);
-            this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
-            params.sessionUUID = params.uUID = uUID;
-            this.mediaType = "video";
-            this.to = Array.isArray(params.to) ? params.to : [params.to];
-            this.currentFromUser = this.currentUser;
-            params.isPeer = params.isPeer || 1;
-            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: params.isPeer, isInitiator: 1 };
-            if (!params.data) {
-                params.data = {};
-            }
-            params.data.stateInfo = { video: params.video, audio: params.audio };
-            this.sessionInfo[uUID].currentCallParams = params;
+            var _a;
+            params.call_type = (_a = params.call_type) !== null && _a !== void 0 ? _a : "one_to_one";
+            params.isInitiator = params.hasOwnProperty('isInitiator') ? params.isInitiator : 1;
+            params.isPeer = params.hasOwnProperty('isPeer') ? params.isPeer : 1;
             let options = {};
             try {
                 options = await this.createOptions(params);
@@ -662,63 +653,34 @@ class Client extends events_1.EventEmitter {
                 return rejects({ status: false, error: e });
             }
             if (options.localVideo) {
-                this.localVideos[uUID] = options.localVideo;
+                this.localVideos[params.uUID] = options.localVideo;
             }
-            this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
+            this.webRtcPeers[params.uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
                 if (error) {
                     rejects(error);
                     this.onErrorHandler();
                     return console.error(error);
                 }
-                this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                    this.onOfferCall(error, offerSdp, this.mediaType, uUID, params);
-                    resolve(uUID);
+                this.webRtcPeers[params.uUID].generateOffer((error, offerSdp) => {
+                    if (params.call_type == "one_to_many") {
+                        this.onOfferOneToManyCall(error, offerSdp, params.uUID, params);
+                    }
+                    else {
+                        this.onOfferCall(error, offerSdp, this.mediaType, params.uUID, params);
+                    }
+                    if (withStreamHelper) {
+                        resolve([this.streamHelper, params.uUID]);
+                    }
+                    else {
+                        resolve(params.uUID);
+                    }
                 });
             });
         });
     }
     AudioCall(params) {
-        return new Promise(async (resolve, rejects) => {
-            let uUID = (params.hasOwnProperty("sessionUUID")) ? params["sessionUUID"] : new Date().getTime().toString();
-            this.videoStatus[uUID] = 0;
-            this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
-            this.audioStatus[uUID] = 1;
-            this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
-            params.sessionUUID = params.uUID = uUID;
-            params.isPeer = params.isPeer || 1;
-            this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: params.isPeer, isInitiator: 1 };
-            this.mediaType = "audio";
-            this.to = Array.isArray(params.to) ? params.to : [params.to];
-            this.currentFromUser = this.currentUser;
-            this.localVideos[uUID] = params.localVideo;
-            if (!params.data) {
-                params.data = {};
-            }
-            params.data.stateInfo = { video: 0, audio: params.audio };
-            this.sessionInfo[uUID].currentCallParams = params;
-            let options = {};
-            try {
-                options = await this.createOptions(params);
-                if (options && !options.status) {
-                    throw options.message;
-                }
-            }
-            catch (e) {
-                this.onErrorHandler();
-                return rejects({ status: false, error: e });
-            }
-            this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
-                if (error) {
-                    rejects(error);
-                    this.onErrorHandler();
-                    return console.error(error);
-                }
-                this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                    this.onOfferCall(error, offerSdp, "audio", uUID, params);
-                    resolve(uUID);
-                });
-            });
-        });
+        params.video = 0;
+        return this.Call(params);
     }
     //////////////////// end one to one call
     ///////////////////////////////////////////////////
@@ -902,15 +864,14 @@ class Client extends events_1.EventEmitter {
         }
     }
     async AcceptCall(params) {
+        params.call_type = "one_to_one";
+        params.isInitiator = 0;
+        params.isPeer = params.hasOwnProperty('isPeer') ? params.isPeer : 1;
         return new Promise(async (resolve, rejects) => {
             var _a, _b, _c;
             this.localVideo = params.localVideo;
             let from = this.currentFromUser;
             let uUID = params.uUID = params.sessionUUID;
-            this.videoStatus[uUID] = (params.video ? 1 : 0);
-            this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
-            this.audioStatus[uUID] = (params.audio ? 1 : 0);
-            this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
             this.UUIDSessions[from] = (_a = this.UUIDSessions[from]) !== null && _a !== void 0 ? _a : uUID;
             this.UUIDSessionTypes[uUID] = (_b = this.UUIDSessionTypes[uUID]) !== null && _b !== void 0 ? _b : "one_to_one";
             this.UUIDSessionMediaTypes[from] = (_c = this.UUIDSessionMediaTypes[from]) !== null && _c !== void 0 ? _c : (!params.video ? 'audio' : 'video');
@@ -930,10 +891,6 @@ class Client extends events_1.EventEmitter {
                 this.localVideos[uUID] = options.localVideo;
             }
             if (uUID) {
-                if (!this.sessionInfo[uUID]) {
-                    this.sessionInfo[uUID] = { call_type: "one_to_one", isPeer: params.isPeer | 1, isInitiator: 0 };
-                }
-                this.sessionInfo[uUID].currentCallParams = params;
                 this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
                     if (error) {
                         this.onErrorHandler();
@@ -1077,6 +1034,27 @@ class Client extends events_1.EventEmitter {
         return this.Broadcasting(params);
     }
     async createOptions(params) {
+        if (this.socketState !== "registered") {
+            return ({ message: "Not registered with VDOTOK! Current state -> " + this.socketState, status: false });
+        }
+        let uUID = (params.hasOwnProperty("sessionUUID")) ? params["sessionUUID"] : new Date().getTime().toString();
+        if (!this.sessionInfo[uUID]) {
+            this.sessionInfo[uUID] = { call_type: params.call_type, isPeer: params.isPeer || 0, isInitiator: params.isInitiator || 0 };
+        }
+        this.videoStatus[uUID] = (params.video ? 1 : 0);
+        this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
+        this.audioStatus[uUID] = (params.audio ? 1 : 0);
+        this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
+        params.sessionUUID = params.uUID = uUID;
+        this.sessionInfo[uUID].mediaType = this.mediaType = params.video ? "video" : "audio";
+        this.to = params.to === "" || Array.isArray(params.to) ? params.to : [params.to];
+        this.currentFromUser = this.currentUser;
+        params.assUUID = (params.hasOwnProperty("associatedSessionUUID")) ? params["associatedSessionUUID"] : "";
+        params.isPublic = (params.hasOwnProperty("broadcastType")) ? params["broadcastType"] : 0;
+        if (!params.data) {
+            params.data = {};
+        }
+        params.data.stateInfo = { video: params.video, audio: params.audio };
         let isInitiator = false;
         if (this.sessionInfo && this.sessionInfo[params.uUID]) {
             isInitiator = this.sessionInfo[params.uUID].isInitiator;
@@ -1142,6 +1120,7 @@ class Client extends events_1.EventEmitter {
                 this.screenStreamStopped(params.uUID);
             };
         }
+        this.sessionInfo[uUID].currentCallParams = params;
         this.nativeScreenShare[params.uUID] = streams.nativeScreenShare;
         if (params.isPeer) {
             if (isInitiator) {
@@ -1151,15 +1130,16 @@ class Client extends events_1.EventEmitter {
                         from: this.currentFromUser,
                         media_type: (!params.video ? 'audio' : 'video'),
                         session_type: "call",
-                        call_type: "one_to_one"
+                        call_type: params.call_type
                     });
                     let initInterval = setInterval(() => {
-                        if (this.turnConfigs && this.turnConfigs.receiver_status && !this.turnConfigs.receiver_status.status) {
+                        if (this.turnConfigs && this.turnConfigs.receivers && !this.turnConfigs.receivers.length) {
                             this.onErrorHandler();
                             rejects({ status: false, message: "User is offline!" });
                         }
                         if (this.turnConfigs) {
                             clearInterval(initInterval);
+                            options.receivers = this.turnConfigs.receivers;
                             options = this.setStunTurn(options);
                             resolve(options);
                         }
@@ -1258,55 +1238,18 @@ class Client extends events_1.EventEmitter {
         }
     }
     async Broadcasting(params) {
-        return new Promise(async (resolve, rejects) => {
-            let uUID = (params.hasOwnProperty("sessionUUID")) ? params["sessionUUID"] : new Date().getTime().toString();
-            this.mediaType = params.video ? "video" : "audio";
-            this.videoStatus[uUID] = (params.video ? 1 : 0);
-            this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
-            this.audioStatus[uUID] = (params.audio ? 1 : 0);
-            this.isEmptyAudioStarted[uUID] = !this.audioStatus[uUID];
-            params.sessionUUID = params.uUID = uUID;
-            this.to = params.to;
-            this.currentFromUser = this.currentUser;
-            this.sessionInfo[uUID] = { call_type: "one_to_many", isInitiator: 1 };
-            let assUUID = (params.hasOwnProperty("associatedSessionUUID")) ? params["associatedSessionUUID"] : "";
-            let isPublic = (params.hasOwnProperty("broadcastType")) ? params["broadcastType"] : 0;
-            this.localVideos[uUID] = params.localVideo;
-            let session_type = "call";
-            this.sessionInfo[uUID].currentCallParams = params;
-            let options = {};
-            try {
-                options = await this.createOptions(params);
-                if (options && !options.status) {
-                    this.onErrorHandler();
-                    rejects(options);
-                }
-            }
-            catch (e) {
-                this.onErrorHandler();
-                return rejects({ status: false, error: e });
-            }
-            if (options.localVideo) {
-                this.localVideos[uUID] = options.localVideo;
-            }
-            this.webRtcPeers[uUID] = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendonly(options, (error) => {
-                if (error) {
-                    rejects(error);
-                    return console.error(error);
-                }
-                this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                    this.onOfferOneToManyCall(error, offerSdp, uUID, assUUID, isPublic, session_type, params.re_invite, params.ref_id, params.isRecord);
-                    resolve([this.streamHelper, uUID]);
-                });
-            });
-        });
+        params.call_type = "one_to_many";
+        params.isInitiator = 1;
+        params.isPeer = 0;
+        params.session_type = "call";
+        return this.Call(params, true);
     }
     onErrorHandler() {
         if (this.streamHelper) {
             this.streamHelper.removeAllStreams();
         }
     }
-    onOfferOneToManyCall(error, offerSdp, uUID, assUUID, isPublic, session_type, re_invite = 0, ref_id = 0, isRecord = 0) {
+    onOfferOneToManyCall(error, offerSdp, uUID, params) {
         if (error) {
             EventHandler_1.default.OnOfferIncomingCall(error, this);
             return console.error('Error generating the call offer ', error);
@@ -1321,20 +1264,20 @@ class Client extends events_1.EventEmitter {
         callRequest.mcToken = this.McToken;
         callRequest.sdpOffer = offerSdp;
         callRequest.call_type = "one_to_many";
-        callRequest.session_type = session_type;
+        callRequest.session_type = params.session_type;
         //////////////////////////////////////////
         ///////for public url/group
-        callRequest.custom_field("broadcastType", isPublic);
-        callRequest.custom_field("associatedSessionUUID", assUUID);
-        if (re_invite && ref_id) {
+        callRequest.custom_field("broadcastType", params.isPublic);
+        callRequest.custom_field("associatedSessionUUID", params.assUUID);
+        if (params.re_invite && params.ref_id) {
             callRequest.requestType = 're_invite';
-            callRequest.referenceID = ref_id;
+            callRequest.referenceID = params.ref_id;
         }
         else {
             callRequest.requestType = 'session_invite';
             delete callRequest.referenceID;
         }
-        if (isRecord) {
+        if (params.isRecord) {
             callRequest.isRecord = 1;
         }
         else {
@@ -1349,7 +1292,7 @@ class Client extends events_1.EventEmitter {
         }
         this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, {
             fromVideo: true,
-            reInvite: re_invite
+            reInvite: params.re_invite
         });
     }
     onIceError(uUID, ev) {
@@ -3555,7 +3498,6 @@ class SingleStreamHelper {
             pc.onicecandidate = (e) => {
                 // eslint-disable-next-line no-console
                 console.log("cand", e.candidate);
-                console.log("e.target.iceGatheringState", e.target.iceGatheringState);
                 if (e.candidate && e.candidate.candidate.includes("srflx")) {
                     const cand = parseCandidate(e.candidate.candidate);
                     //console.log(JSON.stringify(cand));
@@ -3564,9 +3506,8 @@ class SingleStreamHelper {
                     }
                     candidates[cand.relatedPort].push(cand);
                     this.publicIps.push(cand.ip + ":" + cand.port);
-                    //@ts-ignore
                 }
-                else if (!e.candidate || (e.target && e.target.iceGatheringState === 'complete')) {
+                else if (!e.candidate || pc.iceGatheringState === "complete") {
                     if (Object.keys(candidates).length === 1) {
                         const ports = candidates[Object.keys(candidates)[0]];
                         const NatType = ports.length === 1 ? "normal" : "symmetric";
@@ -3574,6 +3515,9 @@ class SingleStreamHelper {
                         // eslint-disable-next-line no-console
                         console.log("candidates", candidates, ports, this.publicIps, NatType);
                         pc.close();
+                    }
+                    else {
+                        resolve({ natType: "Undefined", publicIPs: this.publicIps });
                     }
                 }
             };
@@ -4025,7 +3969,7 @@ class ScreenSharingMobile {
             // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
             // @ts-ignore
             // eslint-disable-next-line @typescript-eslint/no-this-alias
-            const context = this,
+            const context = this, 
             // eslint-disable-next-line prefer-rest-params
             args = arguments;
             const later = function () {
@@ -4064,7 +4008,7 @@ class ScreenSharingMobile {
                 async : true, // setting it to false may slow the generation a bit down
                 allowTaint : true,
                 foreignObjectRendering : true,*!/
-
+    
           imageTimeout: 800, // this further delays loading, however this solved a no images in captured screenshot issue
           logging: false,
         });*/
@@ -4885,7 +4829,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment.
+   Supports browser & node.js environment. 
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////
@@ -5213,7 +5157,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
                                                                                 // Polaris/Lynx/Dillo/iCab/Doris/Amaya/w3m/NetSurf/Sleipnir/Obigo/Mosaic/Go/ICE/UP.Browser
             /(links) \(([\w\.]+)/i                                              // Links
             ], [NAME, VERSION], [
-
+            
             /(cobalt)\/([\w\.]+)/i                                              // Cobalt
             ], [NAME, [VERSION, /master.|lts./, ""]]
         ],
