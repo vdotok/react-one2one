@@ -24,6 +24,7 @@ function CallContent() {
       audioStream,
       callMessage,
       reconnectCall,
+      callType,
     },
     dispatch: callDispatch,
   } = useContext(CallContext);
@@ -185,9 +186,15 @@ function CallContent() {
       <div className="inner_container">
         <div className="remote_video_container">
           {showRemoteAudioStreamIcon}
-          <video id="remoteVideo" className="video remote_video" autoPlay playsInline={true}>
-            <source type="video/mp4" />
-          </video>
+            {callType === "video" ?
+                <video id="remoteVideo" className="video remote_video" autoPlay playsInline={true}>
+                    <source type="video/mp4" />
+                </video>
+                :
+                <audio id="remoteVideo" className="video remote_video" autoPlay playsInline={true}>
+                    <source type="audio/opus" />
+                </audio>
+            }
           {showRemoteVideoStreamIcon}
           <p className="username_text">{selectedUser.full_name}</p>
         </div>
