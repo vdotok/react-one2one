@@ -130,12 +130,14 @@ function CallFooter() {
             className="button_icon audio_icon"
           />
         </Button>
-        <Button onClick={() => cameraHandler()} active={camera}>
-          <GetIcon
-            iconName={camera ? "oncam" : "offcam"}
-            className="button_icon cam_icon"
-          />
-        </Button>
+        {callType === "video" ?
+            <Button onClick={() => cameraHandler()} active={camera}>
+              <GetIcon
+                iconName={camera ? "oncam" : "offcam"}
+                className="button_icon cam_icon"
+              />
+            </Button>
+        : ''}
         <Button className="phone_button" onClick={endCall}>
           <GetIcon iconName="phone" className="button_icon phone_icon" />
         </Button>
