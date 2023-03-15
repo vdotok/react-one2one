@@ -200,7 +200,7 @@ function CallContent() {
         </div>
         <div className="local_video_container">
           {showLocalAudioStreamIcon}
-          <video id="localVideo" className="video local_video" autoPlay playsInline={true}>
+          <video id="localVideo" muted className="video local_video" autoPlay playsInline={true}>
             <source type="video/mp4" />
           </video>
           {showLocalVideoStreamIcon}
