@@ -1097,7 +1097,7 @@ class Client extends events_1.EventEmitter {
         if (params.videoType == "camera" || params.videoType == "cam" || params.videoType == "user" || params.videoType == "webcam") {
             params.videoType = "camera";
         }
-        if (params.videoType != "camera" && params.videoType != "screen") {
+        if (params.videoType != "camera" && params.videoType != "screen" && params.videoType != "audio") {
             console.info("Valid options are camera or screen, choosing camera");
             params.videoType = "camera";
         }
