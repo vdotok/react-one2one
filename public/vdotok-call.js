@@ -96,7 +96,7 @@ window["CVDOTOK"] =
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.PhantomHelper = exports.ScreenSharingMobile = exports.Broadcast = exports.ManyToMany = exports.Confrence = exports.Client = exports.version = exports.name = void 0;
+exports.PeerM2M = exports.PhantomHelper = exports.ScreenSharingMobile = exports.Broadcast = exports.Confrence = exports.Client = exports.version = exports.name = void 0;
 /* eslint-disable prettier/prettier */
 // Helpful name and version exports
 const version_1 = __webpack_require__(1);
@@ -107,11 +107,11 @@ exports.name = name;
 // Export namespaced web
 const index_jsonrpc_1 = __webpack_require__(2);
 exports.Client = index_jsonrpc_1.default;
-const Conference_1 = __webpack_require__(27);
+const PeerM2M_1 = __webpack_require__(28);
+exports.PeerM2M = PeerM2M_1.default;
+const Conference_1 = __webpack_require__(29);
 exports.Confrence = Conference_1.default;
-const ManyToMany_1 = __webpack_require__(28);
-exports.ManyToMany = ManyToMany_1.default;
-const broadcast_1 = __webpack_require__(29);
+const broadcast_1 = __webpack_require__(30);
 exports.Broadcast = broadcast_1.default;
 const ScreenSharingMobile_1 = __webpack_require__(14);
 exports.ScreenSharingMobile = ScreenSharingMobile_1.default;
@@ -155,6 +155,7 @@ const CommonHelper_1 = __webpack_require__(5);
 const StreamHelper_1 = __webpack_require__(13);
 const ScreenSharingMobile_1 = __webpack_require__(14);
 const WebRtcPeerHelper_1 = __webpack_require__(16);
+const ManyToManyClass_1 = __webpack_require__(27);
 class Client extends events_1.EventEmitter {
     constructor(_Credentials) {
         super();
@@ -308,7 +309,8 @@ class Client extends events_1.EventEmitter {
                     this.sessionInfo[messageData.sessionUUID] =
                         {
                             incomingCallData: messageData,
-                            call_type: isVideoCall ? "video" : "audio",
+                            call_type: messageData.call_type,
+                            mediaType: isVideoCall ? "video" : "audio",
                             isPeer: messageData.isPeer,
                             isSDPAnswerSend: 0,
                             isInitiator: 0
@@ -616,7 +618,7 @@ class Client extends events_1.EventEmitter {
                         EventHandler_1.default.SessionSDP(error, this);
                         return console.error(error);
                     }
-                    this.onOfferIncomingCall(error, answerSdp, null, uUID, messageData.isPeer);
+                    this.onOfferIncomingCall(error, answerSdp, null, uUID, messageData.isPeer, 1);
                     return uUID;
                 });
             }
@@ -651,7 +653,7 @@ class Client extends events_1.EventEmitter {
             }
             catch (e) {
                 this.onErrorHandler();
-                return rejects({ status: false, error: e });
+                return rejects({ status: false, message: e });
             }
             if (options.localVideo) {
                 this.localVideos[params.uUID] = options.localVideo;
@@ -865,7 +867,7 @@ class Client extends events_1.EventEmitter {
         }
     }
     async AcceptCall(params) {
-        params.call_type = "one_to_one";
+        params.call_type = this.sessionInfo[params.uUID] && this.sessionInfo[params.uUID].call_type ? this.sessionInfo[params.uUID].call_type : "one_to_one";
         params.isInitiator = 0;
         params.isPeer = params.hasOwnProperty('isPeer') ? params.isPeer : 1;
         return new Promise(async (resolve, rejects) => {
@@ -886,7 +888,7 @@ class Client extends events_1.EventEmitter {
             }
             catch (e) {
                 this.onErrorHandler();
-                return rejects({ status: false, error: e });
+                return rejects({ status: false, message: e });
             }
             if (options.localVideo) {
                 this.localVideos[uUID] = options.localVideo;
@@ -906,14 +908,14 @@ class Client extends events_1.EventEmitter {
                                 EventHandler_1.default.SessionSDP(error, this);
                                 return console.error(error);
                             }
-                            this.onOfferIncomingCall(error, answerSdp, from, uUID);
+                            this.onOfferIncomingCall(error, answerSdp, from, uUID, 1, 0);
                             resolve(uUID);
                         });
                     }
                     else {
                         //this is call through server
                         this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                            this.onOfferIncomingCall(error, offerSdp, from, uUID);
+                            this.onOfferIncomingCall(error, offerSdp, from, uUID, 0, 0);
                             resolve(uUID);
                         });
                     }
@@ -962,7 +964,7 @@ class Client extends events_1.EventEmitter {
         };
         this.SendPacket(response);
     }
-    onOfferIncomingCall(error, answerSdp, from, uUID = null, isPeer = 0) {
+    onOfferIncomingCall(error, answerSdp, from, uUID = null, isPeer = 0, isReInvite = 0) {
         if (error) {
             EventHandler_1.default.OnOfferIncomingCall(error, this);
             return console.error("Error generating the offer");
@@ -988,6 +990,9 @@ class Client extends events_1.EventEmitter {
             "responseMessage": "accepted"
         };
         if (isPeer) {
+            response.isPeer = 1;
+        }
+        if (isReInvite) {
             delete response.sdpOffer;
             response.sdp = answerSdp;
             response.sdp_type = 'sdpAnswer';
@@ -1034,7 +1039,7 @@ class Client extends events_1.EventEmitter {
         params["to"] = [];
         return this.Broadcasting(params);
     }
-    async createOptions(params) {
+    async createOptions(params, withParams = 0) {
         if (this.socketState !== "registered") {
             return ({ message: "Not registered with VDOTOK! Current state -> " + this.socketState, status: false });
         }
@@ -1122,6 +1127,9 @@ class Client extends events_1.EventEmitter {
         }
         this.sessionInfo[uUID].currentCallParams = params;
         this.nativeScreenShare[params.uUID] = streams.nativeScreenShare;
+        if (withParams) {
+            options.params = params;
+        }
         if (params.isPeer) {
             if (isInitiator) {
                 return new Promise((resolve, rejects) => {
@@ -1354,7 +1362,10 @@ class Client extends events_1.EventEmitter {
             callRequest.call_type = "one_to_one_with_ai";
         }
         else {
-            callRequest.call_type = "one_to_one";
+            callRequest.call_type = params.call_type ? params.call_type : "one_to_one";
+        }
+        if (callRequest.call_type === "many_to_many" && params.participantArray && params.participantArray.length) {
+            callRequest.participantArray = params.participantArray;
         }
         if (params.re_invite && params.ref_id) {
             callRequest.referenceID = params.ref_id;
@@ -1375,7 +1386,7 @@ class Client extends events_1.EventEmitter {
         }
         callRequest.SendCallRequest(this.ws);
         this.UUIDSessions[this.currentUser] = uUID;
-        this.UUIDSessionTypes[uUID] = "one_to_one";
+        this.UUIDSessionTypes[uUID] = callRequest.call_type;
         console.log(' OnOfferCall :: :: ::', media_type);
         this.sendStateInformation(this.videoStatus[uUID], this.audioStatus[uUID], uUID, {});
         if (params.re_invite) {
@@ -1576,7 +1587,7 @@ class Client extends events_1.EventEmitter {
                 }
                 catch (e) {
                     console.log(e);
-                    return { status: false, error: e };
+                    return { status: false, message: e };
                 }
             }
             this.sendStateInformation(video, 1, session, { fromAudio: true });
@@ -1614,7 +1625,7 @@ class Client extends events_1.EventEmitter {
      */
     async SetCameraOn(uUID, facingMode = 'user', extraData = null) {
         if (!(this.webRtcPeers[uUID] && this.webRtcPeers[uUID].peerConnection)) {
-            return { status: false, error: "Peer Connection not found!", tryNewCall: true };
+            return { status: false, message: "Peer Connection not found!", tryNewCall: true };
         }
         let session = (this.isManyToMany) ? this.callSession : this.UUIDSessions[this.currentFromUser];
         if (uUID) {
@@ -1635,7 +1646,7 @@ class Client extends events_1.EventEmitter {
                     let vResults = (await this.streamHelper.getStream(0, 1, (facingMode == 'screen' ? 'screen' : 'camera'), facingMode));
                     videoStream = vResults.video;
                     if (!videoStream) {
-                        return { status: false, error: "Unable to get Video Stream!" };
+                        return { status: false, message: "Unable to get Video Stream!" };
                     }
                     if (videoStream && facingMode == 'screen') {
                         videoStream.getVideoTracks()[0].onended = () => {
@@ -1648,13 +1659,13 @@ class Client extends events_1.EventEmitter {
                     done = 1;
                 }
                 else {
-                    return { status: false, error: { message: 'Back Camera not found!' } };
+                    return { status: false, message: 'Back Camera not found!' };
                 }
             }
             catch (e) {
                 this.videoStatus[session] = 0;
                 console.log("Error", e);
-                return { status: false, error: e };
+                return { status: false, message: e };
             }
         }
         if (done && this.localVideos[session] && this.localVideos[session] != undefined) {
@@ -1843,6 +1854,37 @@ class Client extends events_1.EventEmitter {
     removeBandwidthRestriction(sdp) {
         return sdp.replace(/b=AS:.*\r\n/, '').replace(/b=TIAS:.*\r\n/, '');
     }
+    ////////////////////////////////////////////////////////////
+    /////////////// MANY TO MANY CALLS
+    GroupCall(params) {
+        let manyTomany = new ManyToManyClass_1.default(this);
+        let uUID = new Date().getTime().toString();
+        params.uUID = uUID;
+        this.localVideos[uUID] = params.localVideo;
+        this.manyToMany = manyTomany;
+        this.isManyToMany = true;
+        this.manyToMany.GroupCall(params);
+    }
+    JoinGroupCall(params) {
+        let manyTomany = new ManyToManyClass_1.default(this);
+        manyTomany.callSession = this.callSession;
+        manyTomany.mediaType = this.mediaType;
+        this.localVideo = params.localVideo;
+        this.manyToMany = manyTomany;
+        this.mediaType = params.call_type;
+        this.localVideo = params.localVideo;
+        this.isManyToMany = true;
+        this.manyToMany.JoinGroupCall(params, this.callSession);
+    }
+    /**
+     * SetParticipantVideo
+     */
+    SetParticipantVideo(refId, partiVideo) {
+        this.manyToMany.SetParticipantVideo(refId, partiVideo);
+    }
+    LeaveGroupCall() {
+        this.manyToMany.LeaveGroupCall();
+    }
     Disconnect() {
         if (this.pingWorker) {
             this.pingWorker.postMessage({ method: 'clearPingInterval' });
@@ -1855,7 +1897,7 @@ class Client extends events_1.EventEmitter {
         }
         this.selfClose = true;
         if (this.ws) {
-            this.ws.close(1000, "Work complete");
+            this.ws.close();
         }
         this.webRtcPeers = [];
         this.sessionInfo = [];
@@ -3153,6 +3195,12 @@ class CallRequestModel {
     get isPeer() {
         return this.ReqPacket.isPeer;
     }
+    set participantArray(participantArray) {
+        this.ReqPacket.participantArray = participantArray;
+    }
+    get participantArray() {
+        return this.ReqPacket.participantArray;
+    }
     custom_field(field, value) {
         this.ReqPacket[field] = value;
     }
@@ -3384,7 +3432,7 @@ class SingleStreamHelper {
                 track.stop();
             });
         }
-        if (this.audioContext) {
+        if (this.audioContext && this.audioContext.state !== "closed") {
             this.audioContext.close();
         }
         if (this.screenSharingMobile &&
@@ -7304,6 +7352,654 @@ Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable prettier/prettier */
 /* prettier-ignore */
 /* eslint-disable */
+const events_1 = __webpack_require__(3);
+const EventHandler_1 = __webpack_require__(4);
+// register model for registering
+const RegisterModel_1 = __webpack_require__(8);
+// register event handler
+const RegisterEventHandler_1 = __webpack_require__(10);
+//call model for initiating a call
+const CallRequestModel_1 = __webpack_require__(11);
+const CommonHelper_1 = __webpack_require__(5);
+const WebRtcPeerHelper_1 = __webpack_require__(16);
+class ManyToManyClass extends events_1.EventEmitter {
+    constructor(instance) {
+        super();
+        this.UUIDSessions = {};
+        this.UUIDSessionTypes = {};
+        this.UUIDSessionMediaTypes = {};
+        this.participants = {};
+        this.participantVideo = {};
+        this.callSession = "";
+        this.participatArray = [];
+        this.mediaType = "";
+        this.videoPlaying = 1;
+        this.audioPlaying = 1;
+        this.instance = {};
+        this.mcToken = instance.mcToken;
+        this.currentUser = instance.currentUser;
+        this.instance = instance;
+        this.ws = instance.ws;
+        // this.Authentication(_Credentials);
+    }
+    set McToken(token) {
+        this.mcToken = token;
+    }
+    get McToken() {
+        return this.mcToken;
+    }
+    Connect(mediaServer) {
+        var webSocketConnetion = new WebSocket(mediaServer);
+        webSocketConnetion.onmessage = (message) => {
+            var messageData = JSON.parse(message.data);
+            console.log('Received message: ', messageData);
+            switch (messageData.requestType) {
+                case 'register':
+                    RegisterEventHandler_1.default.SetRegisterResponse(messageData, this);
+                    break;
+                case 'callResponse':
+                    console.log(' CallResponse: ', messageData);
+                    this.CallResponse(messageData);
+                    break;
+                case 'incomingCall':
+                    this.callSession = messageData.sessionUUID;
+                    this.mediaType = messageData.media_type;
+                    console.log('incomingCall case: ', message);
+                    EventHandler_1.default.OnIncomingGroupCall(messageData, this);
+                    // this.incomingCall(messageData);
+                    break;
+                case 'startCommunication':
+                    this.SessionStart(messageData);
+                    break;
+                case 'stopCommunication':
+                    console.info('Communication ended by remote peer', messageData);
+                    //EventHandler.SessionEnd(messageData,this);
+                    // this.DisposeWebrtc(true);
+                    break;
+                case 'iceCandidate':
+                    this.AddCandidate(messageData);
+                    break;
+                case 'session_invite':
+                    //EventHandler.SessionInvite(messageData,this);
+                    break;
+                case 'session_cancel':
+                    this.OnSessionCancel(messageData);
+                    console.log("===onParticipantOffer== exiting session_cancel", messageData, new Date().toLocaleTimeString());
+                    //EventHandler.SessionCancel(messageData,this);
+                    break;
+                /////////////////////////////////////////////
+                /////////  many to many events
+                case 'existing_participants':
+                    console.log("===onParticipantOffer== exiting", messageData, new Date().toLocaleTimeString());
+                    this.OnExistingParticipants(messageData);
+                    //EventHandler.SetExistingParticipants(messageData,this);
+                    break;
+                case 'new_participant_arrived':
+                    console.log("===onParticipantOffer== exiting new", messageData, new Date().toLocaleTimeString());
+                    this.OnNewParticipant(messageData);
+                    break;
+                case 'participantLeft':
+                    console.log("===onParticipantOffer== exiting left", messageData, new Date().toLocaleTimeString());
+                    this.OnParticipantLeft(messageData);
+                    break;
+                case 'state_information':
+                    console.log("===onParticipantOffer== exiting left", messageData, new Date().toLocaleTimeString());
+                    EventHandler_1.default.SetParticipantStatus(messageData, this);
+                    break;
+                //EventHandler.SetExistingParticipants(messageData,this);
+                ////////   end many to many events
+                ////////////////////////////////////////////
+                //this.DisposeWebrtc(true);
+                default:
+                // console.error('Unrecognized message', messageData);
+            }
+        };
+        webSocketConnetion.onclose = (res) => {
+            EventHandler_1.default.OnDisconnection(res, this);
+            console.log("OnClose socket==", res);
+        };
+        webSocketConnetion.onopen = (res) => {
+            EventHandler_1.default.OnConnection(res, this);
+            console.log("OnOpen socket==", res);
+        };
+        //   webSocketConnetion.onmessage=(res:any)=>{
+        // 	console.log("OnMessage socket==",res);
+        //   };
+        webSocketConnetion.onerror = (res) => {
+            EventHandler_1.default.OnDisconnection(res, this);
+            console.log("OnError socket==", res);
+        };
+        this.ws = webSocketConnetion;
+    }
+    SetParticipantStatus(messageData) {
+        EventHandler_1.default.SetParticipantStatus(messageData, this.instance);
+    }
+    AddCandidate(message) {
+        console.log("Add Ice Candidate::::", message, this.participants[message.referenceID]);
+        if (this.participants[message.referenceID]) {
+            this.participants[message.referenceID].addIceCandidate(message.candidate, (error) => {
+                if (error) {
+                    EventHandler_1.default.OnAddCandidate(error, this.instance);
+                    return console.error('Error adding candidate: ' + error);
+                }
+            });
+        }
+        else {
+            console.error("Participant not found for Add Ice Candidate::::", message, this.participants[message.referenceID]);
+        }
+    }
+    OnExistingParticipants(response) {
+        let refIDs = response.referenceIDs;
+        let participantList = refIDs;
+        refIDs.forEach((ref) => {
+            if (ref != undefined) {
+                // this.participatArray.push(ref);
+                // let video=this.ExistingParticipant(ref);
+                // participantList.push({referenceID:ref,stream:video.srcObject});
+                this.instance.emit("groupCall", { type: "NEW_PARTICIPANT", message: "New participant arrived.", participant: ref });
+            }
+        });
+        //	this.instance.emit("groupCall",{type:"PARTICIPANT_LIST",message:"Participant List is available",participant_list:participantList});
+    }
+    OnSessionCancel(response) {
+        let refID = response.referenceID;
+        this.instance.emit("groupCall", { type: "PARTICIPANT_LEFT", message: "Participant left.", participant: refID });
+        var participant = this.participants[refID];
+        this.participatArray.splice(this.participatArray.indexOf(refID), 1);
+        if (participant && participant != undefined) {
+            participant.dispose();
+        }
+        delete this.participants[refID];
+        delete this.participantVideo[refID];
+    }
+    OnNewParticipant(response) {
+        let refID = response.referenceID;
+        if (refID != undefined && this.participatArray.indexOf(refID) == -1) {
+            //let video=this.ExistingParticipant(refID);
+            this.instance.emit("groupCall", { type: "NEW_PARTICIPANT", message: "New participant arrived.", participant: refID });
+        }
+    }
+    OnParticipantLeft(response) {
+        let refID = response.referenceID;
+        this.instance.emit("groupCall", { type: "PARTICIPANT_LEFT", message: "Participant left.", participant: refID });
+        // var participant = this.participants[refID];
+        // this.participatArray.splice(this.participatArray.indexOf(refID),1);
+        // //participant.dispose();
+        // delete this.participants[refID];
+        // delete this.participantVideo[refID];
+    }
+    SetParticipantVideo(refId, partiVideo) {
+        (0, CommonHelper_1.SetPlaysInline)(partiVideo);
+        let options = {
+            remoteVideo: partiVideo,
+            onicecandidate: (candidate) => {
+                this.OnParticipantIceCandidate(candidate, refId);
+            },
+            onerror: this.onError
+        };
+        let rtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerRecvonly(options, (error) => {
+            if (error) {
+                return console.error(error);
+            }
+            rtcPeer.generateOffer((error, offerSdp) => {
+                this.onParticipantOffer(error, offerSdp, refId);
+            });
+        });
+        this.participants[refId] = rtcPeer;
+        this.participantVideo[refId] = partiVideo;
+        return partiVideo;
+    }
+    ExistingParticipant(refId) {
+        var _a;
+        let partiVideo = document.createElement("video");
+        partiVideo.autoplay = true;
+        partiVideo.muted = true;
+        partiVideo.style.display = "none";
+        let options = {
+            remoteVideo: partiVideo,
+            onicecandidate: (candidate) => {
+                this.OnParticipantIceCandidate(candidate, refId);
+            },
+            onerror: this.onError
+        };
+        let rtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerRecvonly(options, (error) => {
+            if (error) {
+                return console.error(error);
+            }
+            rtcPeer.generateOffer((error, offerSdp) => {
+                this.onParticipantOffer(error, offerSdp, refId);
+            });
+        });
+        this.participants[refId] = rtcPeer;
+        this.participantVideo[refId] = partiVideo;
+        (_a = document.getElementById("hellofyou")) === null || _a === void 0 ? void 0 : _a.appendChild(partiVideo);
+        return partiVideo;
+    }
+    CallResponse(message) {
+        console.info('CallResponse', this.participants[message.referenceID], message);
+        if (message.response == 'accepted') {
+            this.participants[message.referenceID].processAnswer(message.sdpAnswer, (error) => {
+                if (error) {
+                    EventHandler_1.default.SessionSDP(error, this);
+                    return console.error(error);
+                }
+            });
+        }
+    }
+    SessionStart(message) {
+        EventHandler_1.default.GroupSessionStart(message, this.instance);
+        console.log("Start=Commm", message.referenceID, message.referenceID, this.participants[message.referenceID]);
+        this.participants[message.referenceID].processAnswer(message.sdpAnswer, (error) => {
+            if (error) {
+                EventHandler_1.default.SessionSDP(error, this);
+                return console.error(error);
+            }
+        });
+    }
+    /*************
+   * Register user to SDK
+   */
+    Register(referenceID, authorizationToken) {
+        this.currentUser = referenceID;
+        let regMessage = new RegisterModel_1.default();
+        regMessage.requestID = new Date().getTime().toString();
+        regMessage.projectID = this.projectID;
+        regMessage.tenantID = this.projectID;
+        regMessage.referenceID = referenceID;
+        regMessage.authorizationToken = authorizationToken;
+        regMessage.SendRegisterRequest(this.ws);
+    }
+    GroupCall(params) {
+        this.mediaType = params.call_type;
+        this.to = Array.isArray(params.to) ? params.to : [params.to];
+        this.currentFromUser = this.currentUser;
+        this.localVideo = params.localVideo;
+        this.instance.to = this.to;
+        (0, CommonHelper_1.SetPlaysInline)(this.localVideo);
+        this.audioPlaying = 1;
+        this.videoPlaying = params.call_type != "audio" ? 1 : 0;
+        let constraints = {
+            audio: true,
+            video: params.call_type != "audio"
+            // video: {
+            //     mandatory: {
+            //         maxWidth: 320,
+            //         maxFrameRate: 15,
+            //         minFrameRate: 15
+            //     }
+            // }
+        };
+        var options = {
+            mediaConstraints: constraints,
+            localVideo: params.localVideo,
+            onicecandidate: (candidate) => {
+                this.onIceCandidate(candidate, this.currentUser);
+            },
+            onerror: this.onError
+        };
+        let webRtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendonly(options, (error) => {
+            if (error) {
+                return console.error(error);
+            }
+            webRtcPeer.generateOffer((error, offerSdp) => {
+                this.onManyToManyOfferCall(error, offerSdp, params.call_type);
+            });
+        });
+        this.participants[this.currentUser] = webRtcPeer;
+    }
+    JoinGroupCall(params, callSession) {
+        this.mediaType = params.call_type;
+        this.localVideo = params.localVideo;
+        this.callSession = callSession;
+        (0, CommonHelper_1.SetPlaysInline)(this.localVideo);
+        let constraints = {
+            audio: true,
+            video: params.call_type != "audio"
+            // video: {
+            //     mandatory: {
+            //         maxWidth: 320,
+            //         maxFrameRate: 15,
+            //         minFrameRate: 15
+            //     }
+            // }
+        };
+        var options = {
+            mediaConstraints: constraints,
+            localVideo: params.localVideo,
+            onicecandidate: (candidate) => {
+                this.onIceCandidate(candidate, this.currentUser);
+            },
+            onerror: this.onError
+        };
+        let webRtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendonly(options, (error) => {
+            if (error) {
+                return console.error(error);
+            }
+            webRtcPeer.generateOffer((error, offerSdp) => {
+                console.log("======here===it goes inner sess", this.callSession);
+                this.onJoinManyToManyOfferCall(error, offerSdp, params.call_type);
+            });
+            console.log("======here===it goes");
+        });
+        this.participants[this.currentUser] = webRtcPeer;
+    }
+    /*********************************************************
+     *
+     *  Many One To Many Offer
+     *
+     *
+     *********************************************************/
+    /**
+     *
+     * @param error
+     * @param offerSdp
+     * @param media_type
+     * @returns
+     */
+    onManyToManyOfferCall(error, offerSdp, media_type) {
+        if (error) {
+            EventHandler_1.default.OnOfferIncomingCall(error, this);
+            return console.error('Error generating the call offer ', error);
+        }
+        let uUID = new Date().getTime().toString();
+        this.callSession = uUID;
+        this.instance.callSession = uUID;
+        let callRequest = new CallRequestModel_1.default();
+        callRequest.from = this.currentUser;
+        callRequest.to = this.to;
+        callRequest.requestID = uUID;
+        callRequest.sessionUUID = uUID;
+        callRequest.mcToken = this.McToken;
+        callRequest.sdpOffer = offerSdp;
+        callRequest.media_type = media_type;
+        callRequest.call_type = "many_to_many";
+        callRequest.SendCallRequest(this.ws);
+        console.log(' OnOfferCall :: :: ::', media_type);
+    }
+    onJoinManyToManyOfferCall(error, offerSdp, media_type) {
+        if (error) {
+            EventHandler_1.default.OnOfferIncomingCall(error, this);
+            return console.error('Error generating the call offer ', error);
+        }
+        console.log("======here===it goes inner", media_type);
+        let uUID = new Date().getTime().toString();
+        let sessionUUID = this.callSession;
+        console.log("======here===it goes sess", sessionUUID);
+        var message = {
+            from: this.currentUser,
+            sdpOffer: offerSdp,
+            // Custom Attributes
+            responseCode: 200,
+            responseMessage: "accepted",
+            requestType: "session_invite",
+            type: "request",
+            session_type: "call",
+            call_type: "many_to_many",
+            media_type: media_type,
+            requestID: uUID,
+            sessionUUID: this.callSession,
+            mcToken: this.mcToken
+        };
+        this.SendPacket(message);
+    }
+    onParticipantOffer(error, offerSdp, to) {
+        if (error) {
+            EventHandler_1.default.OnOfferIncomingCall(error, this);
+            return console.error('Error generating the call offer ', error);
+        }
+        let uUID = new Date().getTime().toString();
+        var message = {
+            from: this.currentUser,
+            to: to,
+            requestType: "to_receive_stream",
+            sdpOffer: offerSdp,
+            requestID: uUID,
+            type: "request",
+            sessionUUID: this.callSession,
+            mcToken: this.McToken
+        };
+        console.log("===onParticipantOffer==", message);
+        this.SendPacket(message);
+    }
+    DisposeWebrtc(status) {
+        for (var p in this.participants) {
+            let partiRTC = this.participants[p];
+            if (partiRTC && partiRTC != undefined) {
+                partiRTC.dispose();
+            }
+        }
+        this.participants = {};
+        this.participantVideo = {};
+        this.callSession = "";
+        this.participatArray = [];
+    }
+    onError(error) {
+        EventHandler_1.default.OnRTCPeer(error, this);
+    }
+    onIceCandidate(candidate, referenceID) {
+        console.log("Local candidate" + JSON.stringify(candidate));
+        var message = {
+            requestType: 'onIceCandidate',
+            candidate: candidate,
+            referenceID: referenceID,
+            sessionUUID: this.callSession
+        };
+        this.SendPacket(message);
+    }
+    SendPacket(message) {
+        var jsonMessage = JSON.stringify(message);
+        console.log('Sending message: ' + jsonMessage);
+        if (this.ws != undefined)
+            this.ws.send(jsonMessage);
+        else
+            EventHandler_1.default.OnAuthInitialError('', this);
+    }
+    /**
+     * EndCall
+     */
+    /***
+     *
+     * On Participant IceCandidate
+     *
+     */
+    OnParticipantIceCandidate(candidate, ref) {
+        var message = {
+            requestType: 'onIceCandidate',
+            candidate: candidate,
+            referenceID: ref,
+            sessionUUID: this.callSession
+        };
+        this.SendPacket(message);
+    }
+    SetMicMute() {
+        if (this.localVideo && this.localVideo != undefined) {
+            let video = (this.mediaType == "video") ? 1 : 0;
+            this.audioPlaying = 0;
+            let state = {
+                "requestType": "state_information",
+                "type": "request",
+                "requestID": new Date().getTime().toString(),
+                "sessionUUID": this.callSession,
+                "mcToken": this.McToken,
+                "referenceID": this.currentUser,
+                "audioInformation": this.audioPlaying,
+                "videoInformation": this.videoPlaying
+            };
+            this.SendPacket(state);
+            if (this.localVideo.srcObject != null)
+                this.localVideo.srcObject.getAudioTracks()[0].enabled = false;
+            if (this.localVideo.localName == "audio")
+                this.localVideo.audioTracks[0].enabled = false;
+        }
+    }
+    /**
+     * SetMicMute
+     */
+    SetMicUnmute() {
+        if (this.localVideo && this.localVideo != undefined) {
+            let video = (this.mediaType == "video") ? 1 : 0;
+            this.audioPlaying = 1;
+            let state = {
+                "requestType": "state_information",
+                "type": "request",
+                "requestID": new Date().getTime().toString(),
+                "sessionUUID": this.callSession,
+                "mcToken": this.McToken,
+                "referenceID": this.currentUser,
+                "audioInformation": this.audioPlaying,
+                "videoInformation": this.videoPlaying
+            };
+            this.SendPacket(state);
+            if (this.localVideo.srcObject != null)
+                this.localVideo.srcObject.getAudioTracks()[0].enabled = true;
+            if (this.localVideo.localName == "audio")
+                this.localVideo.audioTracks[0].enabled = true;
+        }
+    }
+    /**
+     * SetCameraOn
+     */
+    SetCameraOn() {
+        if (this.localVideo && this.localVideo != undefined) {
+            this.videoPlaying = 1;
+            let state = {
+                "requestType": "state_information",
+                "type": "request",
+                "requestID": new Date().getTime().toString(),
+                "sessionUUID": this.callSession,
+                "mcToken": this.McToken,
+                "referenceID": this.currentUser,
+                "audioInformation": this.audioPlaying,
+                "videoInformation": this.videoPlaying
+            };
+            this.SendPacket(state);
+            this.localVideo.srcObject.getVideoTracks()[0].enabled = true;
+        }
+    }
+    /**
+     * SetCameraOff
+     */
+    SetCameraOff() {
+        if (this.localVideo && this.localVideo != undefined) {
+            this.videoPlaying = 0;
+            let state = {
+                "requestType": "state_information",
+                "type": "request",
+                "requestID": new Date().getTime().toString(),
+                "sessionUUID": this.callSession,
+                "mcToken": this.McToken,
+                "referenceID": this.currentUser,
+                "audioInformation": this.audioPlaying,
+                "videoInformation": this.videoPlaying
+            };
+            this.SendPacket(state);
+            this.localVideo.srcObject.getVideoTracks()[0].enabled = false;
+        }
+    }
+    LeaveGroupCall() {
+        let response = {
+            "type": "request",
+            "requestType": "session_cancel",
+            "requestID": new Date().getTime().toString(),
+            "sessionUUID": this.callSession,
+            "mcToken": this.McToken
+        };
+        this.SendPacket(response);
+        this.DisposeWebrtc(false);
+    }
+    CancelCall() {
+        let from = this.currentFromUser;
+        let response = {
+            "type": "request",
+            "requestType": "session_cancel",
+            "requestID": new Date().getTime().toString(),
+            "sessionUUID": this.UUIDSessions[from],
+            "mcToken": this.McToken
+        };
+        this.SendPacket(response);
+        this.DisposeWebrtc(false);
+    }
+}
+exports.default = ManyToManyClass;
+
+
+/***/ }),
+/* 28 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const index_jsonrpc_1 = __webpack_require__(2);
+const WebRtcPeerHelper_1 = __webpack_require__(16);
+class PeerM2M extends index_jsonrpc_1.default {
+    GroupCall(params) {
+        return new Promise(async (resolve, reject) => {
+            params.call_type = "many_to_many";
+            params.isInitiator = 1;
+            params.isPeer = 1;
+            let options = {};
+            try {
+                options = await this.createOptions(params, 1);
+                params = options.params;
+                delete options.params;
+                if (options && !options.status) {
+                    throw options.message;
+                }
+            }
+            catch (e) {
+                this.onErrorHandler();
+                return reject({ status: false, error: e });
+            }
+            if (options.localVideo) {
+                this.localVideos[params.uUID] = options.localVideo;
+            }
+            if (options.receivers && options.receivers.length !== 0) {
+                options.receivers.forEach((part) => {
+                    console.log("single participant to call-->", part);
+                    this.sessionInfo[options.uUID][part] = {};
+                    this.manyToManyCallSingleParticipant(part, options, params);
+                });
+            }
+        });
+    }
+    manyToManyCallSingleParticipant(participant, options, params) {
+        return new Promise((resolve, reject) => {
+            params.participantArray = options.receivers;
+            delete options.receivers;
+            const webRtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
+                if (error) {
+                    this.onErrorHandler();
+                    console.error(error);
+                    reject(error);
+                }
+                webRtcPeer.generateOffer((error, offerSdp) => {
+                    this.onOfferCall(error, offerSdp, this.sessionInfo[params.uUID].mediaType, params.uUID, params);
+                    if (error) {
+                        reject(error);
+                    }
+                    else {
+                        this.sessionInfo[params.uUID][participant] = webRtcPeer;
+                        resolve(true);
+                    }
+                });
+            });
+        });
+    }
+}
+exports.default = PeerM2M;
+
+
+/***/ }),
+/* 29 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+/* eslint-disable prettier/prettier */
+/* prettier-ignore */
+/* eslint-disable */
 // @ts-ignore
 const events_1 = __webpack_require__(3);
 const EventHandler_1 = __webpack_require__(4);
@@ -7599,854 +8295,7 @@ exports.default = Confrence;
 
 
 /***/ }),
-/* 28 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-/* eslint-disable prettier/prettier */
-/* prettier-ignore */
-/* eslint-disable */
-// @ts-ignore
-const events_1 = __webpack_require__(3);
-const EventHandler_1 = __webpack_require__(4);
-const Auth_1 = __webpack_require__(6);
-// register model for registering
-const RegisterModel_1 = __webpack_require__(8);
-// register event handler
-const RegisterEventHandler_1 = __webpack_require__(10);
-//call model for initiating a call
-const CallRequestModel_1 = __webpack_require__(11);
-const CommonHelper_1 = __webpack_require__(5);
-const WebRtcPeerHelper_1 = __webpack_require__(16);
-class ManyToMany extends events_1.EventEmitter {
-    constructor(_Credentials) {
-        super();
-        this.UUIDSessions = {};
-        this.UUIDSessionTypes = {};
-        this.UUIDSessionMediaTypes = {};
-        this.participants = {};
-        this.participantVideo = {};
-        this.callSession = "";
-        this.participatArray = [];
-        this.mediaType = "";
-        this.videoPlaying = 1;
-        this.audioPlaying = 1;
-        this.projectID = _Credentials.projectID;
-        this.projectSecret = _Credentials.secret;
-        if (_Credentials.host) {
-            this.Connect(_Credentials.host);
-        }
-        else {
-            this.Authentication(_Credentials);
-        }
-    }
-    set McToken(token) {
-        this.mcToken = token;
-    }
-    get McToken() {
-        return this.mcToken;
-    }
-    Authentication(credentials) {
-        console.log("====DER===", credentials, this.projectID, this.projectSecret, this.clientToken);
-        //this.Connect('wss://cpaas-url-based-demo.vdotok.com:8443/call')
-        // this.Connect('wss://kurento3.togee.io:8443/call');
-        Auth_1.default.Authorization(credentials.projectID, credentials.secret).then((response) => {
-            console.log("===Authorization-outer===", response);
-            if (response && response.status == 200) {
-                let host = `${response.media_server_map.protocol}://${response.media_server_map.host}:${response.media_server_map.port}/${response.media_server_map.end_point}`;
-                this.Connect(host);
-                console.log("===Authorization===", response);
-            }
-            else
-                EventHandler_1.default.OnAuthError(response.message, this);
-        });
-    }
-    Connect(mediaServer) {
-        var webSocketConnetion = new WebSocket(mediaServer);
-        webSocketConnetion.onmessage = (message) => {
-            var messageData = JSON.parse(message.data);
-            console.log('Received message: ', messageData);
-            switch (messageData.requestType) {
-                case 'register':
-                    RegisterEventHandler_1.default.SetRegisterResponse(messageData, this);
-                    this.registerPingWorker();
-                    break;
-                case 'callResponse':
-                    console.log(' CallResponse: ', messageData);
-                    this.CallResponse(messageData);
-                    break;
-                case 'incomingCall':
-                    this.callSession = messageData.sessionUUID;
-                    this.mediaType = messageData.media_type;
-                    console.log('incomingCall case: ', message);
-                    EventHandler_1.default.OnIncomingGroupCall(messageData, this);
-                    // this.incomingCall(messageData);
-                    break;
-                case 'startCommunication':
-                    this.SessionStart(messageData);
-                    break;
-                case 'stopCommunication':
-                    console.info('Communication ended by remote peer', messageData);
-                    //EventHandler.SessionEnd(messageData,this);
-                    // this.DisposeWebrtc(true);
-                    break;
-                case 'iceCandidate':
-                    this.AddCandidate(messageData);
-                    break;
-                case 'session_invite':
-                    //EventHandler.SessionInvite(messageData,this);
-                    break;
-                case 'session_cancel':
-                    this.OnSessionCancel(messageData);
-                    console.log("===onParticipantOffer== exiting session_cancel", messageData, new Date().toLocaleTimeString());
-                    //EventHandler.SessionCancel(messageData,this);
-                    break;
-                /////////////////////////////////////////////
-                /////////  many to many events
-                case 'existing_participants':
-                    console.log("===onParticipantOffer== exiting", messageData, new Date().toLocaleTimeString());
-                    this.OnExistingParticipants(messageData);
-                    //EventHandler.SetExistingParticipants(messageData,this);
-                    break;
-                case 'new_participant_arrived':
-                    console.log("===onParticipantOffer== exiting new", messageData, new Date().toLocaleTimeString());
-                    this.OnNewParticipant(messageData);
-                    break;
-                case 'participantLeft':
-                    console.log("===onParticipantOffer== exiting left", messageData, new Date().toLocaleTimeString());
-                    this.OnParticipantLeft(messageData);
-                    break;
-                case 'state_information':
-                    console.log("===onParticipantOffer== exiting left", messageData, new Date().toLocaleTimeString());
-                    EventHandler_1.default.SetParticipantStatus(messageData, this);
-                    break;
-                //EventHandler.SetExistingParticipants(messageData,this);
-                ////////   end many to many events
-                ////////////////////////////////////////////
-                //this.DisposeWebrtc(true);
-                case 'ping':
-                    this.SendPacket({ requestType: 'pong', "mcToken": this.McToken });
-                    break;
-                default:
-                // console.error('Unrecognized message', messageData);
-            }
-        };
-        webSocketConnetion.onclose = (res) => {
-            EventHandler_1.default.OnDisconnection(res, this);
-            console.log("OnClose socket==", res);
-            this.pingWorker.postMessage({ method: 'clearPingInterval' });
-        };
-        webSocketConnetion.onopen = (res) => {
-            EventHandler_1.default.OnConnection(res, this);
-            console.log("OnOpen socket==", res);
-        };
-        //   webSocketConnetion.onmessage=(res:any)=>{
-        // 	console.log("OnMessage socket==",res);
-        //   };
-        webSocketConnetion.onerror = (res) => {
-            EventHandler_1.default.OnDisconnection(res, this);
-            console.log("OnError socket==", res);
-            this.pingWorker.postMessage({ method: 'clearPingInterval' });
-        };
-        this.ws = webSocketConnetion;
-    }
-    AddCandidate(message) {
-        console.log("Add Ice Candidate::::", message, this.participants[message.referenceID]);
-        if (this.participants[message.referenceID]) {
-            this.participants[message.referenceID].addIceCandidate(message.candidate, (error) => {
-                if (error) {
-                    EventHandler_1.default.OnAddCandidate(error, this);
-                    return console.error('Error adding candidate: ' + error);
-                }
-            });
-        }
-        else {
-            console.error("Participant not found for Add Ice Candidate::::", message, this.participants[message.referenceID]);
-        }
-    }
-    OnExistingParticipants(response) {
-        let refIDs = response.referenceIDs;
-        let participantList = refIDs;
-        refIDs.forEach((ref) => {
-            if (ref != undefined) {
-                // this.participatArray.push(ref);
-                // let video=this.ExistingParticipant(ref);
-                // participantList.push({referenceID:ref,stream:video.srcObject});
-                this.emit("groupCall", { type: "NEW_PARTICIPANT", message: "New participant arrived.", participant: ref });
-            }
-        });
-        //	this.emit("groupCall",{type:"PARTICIPANT_LIST",message:"Participant List is available",participant_list:participantList});
-    }
-    OnSessionCancel(response) {
-        let refID = response.referenceID;
-        this.emit("groupCall", { type: "PARTICIPANT_LEFT", message: "Participant left.", participant: refID });
-        var participant = this.participants[refID];
-        this.participatArray.splice(this.participatArray.indexOf(refID), 1);
-        if (participant && participant != undefined) {
-            participant.dispose();
-        }
-        delete this.participants[refID];
-        delete this.participantVideo[refID];
-    }
-    OnNewParticipant(response) {
-        let refID = response.referenceID;
-        if (refID != undefined && this.participatArray.indexOf(refID) == -1) {
-            //let video=this.ExistingParticipant(refID);
-            this.emit("groupCall", { type: "NEW_PARTICIPANT", message: "New participant arrived.", participant: refID });
-        }
-    }
-    OnParticipantLeft(response) {
-        let refID = response.referenceID;
-        this.emit("groupCall", { type: "PARTICIPANT_LEFT", message: "Participant left.", participant: refID });
-        // var participant = this.participants[refID];
-        // this.participatArray.splice(this.participatArray.indexOf(refID),1);
-        // //participant.dispose();
-        // delete this.participants[refID];
-        // delete this.participantVideo[refID];
-    }
-    SetParticipantVideo(refId, partiVideo) {
-        (0, CommonHelper_1.SetPlaysInline)(partiVideo);
-        let options = {
-            remoteVideo: partiVideo,
-            onicecandidate: (candidate) => {
-                this.OnParticipantIceCandidate(candidate, refId);
-            },
-            onerror: this.onError
-        };
-        let rtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerRecvonly(options, (error) => {
-            if (error) {
-                return console.error(error);
-            }
-            rtcPeer.generateOffer((error, offerSdp) => {
-                this.onParticipantOffer(error, offerSdp, refId);
-            });
-        });
-        this.participants[refId] = rtcPeer;
-        this.participantVideo[refId] = partiVideo;
-        return partiVideo;
-    }
-    ExistingParticipant(refId) {
-        var _a;
-        let partiVideo = document.createElement("video");
-        partiVideo.autoplay = true;
-        partiVideo.muted = true;
-        partiVideo.style.display = "none";
-        let options = {
-            remoteVideo: partiVideo,
-            onicecandidate: (candidate) => {
-                this.OnParticipantIceCandidate(candidate, refId);
-            },
-            onerror: this.onError
-        };
-        let rtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerRecvonly(options, (error) => {
-            if (error) {
-                return console.error(error);
-            }
-            rtcPeer.generateOffer((error, offerSdp) => {
-                this.onParticipantOffer(error, offerSdp, refId);
-            });
-        });
-        this.participants[refId] = rtcPeer;
-        this.participantVideo[refId] = partiVideo;
-        (_a = document.getElementById("hellofyou")) === null || _a === void 0 ? void 0 : _a.appendChild(partiVideo);
-        return partiVideo;
-    }
-    CallResponse(message) {
-        console.info('CallResponse', this.participants[message.referenceID], message);
-        if (message.response == 'accepted') {
-            this.participants[message.referenceID].processAnswer(message.sdpAnswer, (error) => {
-                if (error) {
-                    EventHandler_1.default.SessionSDP(error, this);
-                    return console.error(error);
-                }
-            });
-        }
-    }
-    SessionStart(message) {
-        EventHandler_1.default.SessionStart(message, this);
-        console.log("Start=Commm", message.referenceID, message.referenceID, this.participants[message.referenceID]);
-        this.participants[message.referenceID].processAnswer(message.sdpAnswer, (error) => {
-            if (error) {
-                EventHandler_1.default.SessionSDP(error, this);
-                return console.error(error);
-            }
-        });
-    }
-    onOfferIncomingCall(error, offerSdp, from) {
-        if (error) {
-            EventHandler_1.default.OnOfferIncomingCall(error, this);
-            return console.error("Error generating the offer");
-        }
-        let response = {
-            "type": "request",
-            "requestType": "session_invite",
-            "sdpOffer": offerSdp,
-            "requestID": new Date().getTime().toString(),
-            "sessionUUID": this.callSession,
-            /////// new change
-            "referenceID": this.currentUser,
-            ///////////////////////////////////
-            "responseCode": 200,
-            "responseMessage": "accepted"
-        };
-        console.log("===OnOffering Answer", response);
-        this.SendPacket(response);
-    }
-    OnOfferManytoManyCall(error, offerSdp, from) {
-        if (error) {
-            EventHandler_1.default.OnOfferIncomingCall(error, this);
-            return console.error("Error generating the offer");
-        }
-        let response = {
-            "type": "request",
-            "requestType": "session_invite",
-            "sdpOffer": offerSdp,
-            "requestID": new Date().getTime().toString(),
-            "sessionUUID": this.callSession,
-            /////// new change
-            "referenceID": this.currentUser,
-            ///////////////////////////////////
-            "responseCode": 200,
-            "responseMessage": "accepted"
-        };
-        console.log("===OnOffering Answer", response);
-        this.SendPacket(response);
-    }
-    /*************
-     * Register user to SDK
-     */
-    Register(referenceID, authorizationToken) {
-        this.currentUser = referenceID;
-        let regMessage = new RegisterModel_1.default();
-        regMessage.requestID = new Date().getTime().toString();
-        regMessage.projectID = this.projectID;
-        regMessage.tenantID = this.projectID;
-        regMessage.referenceID = referenceID;
-        regMessage.authorizationToken = authorizationToken;
-        regMessage.SendRegisterRequest(this.ws);
-    }
-    GroupCall(params) {
-        this.mediaType = params.call_type;
-        this.to = Array.isArray(params.to) ? params.to : [params.to];
-        this.currentFromUser = this.currentUser;
-        this.localVideo = params.localVideo;
-        (0, CommonHelper_1.SetPlaysInline)(this.localVideo);
-        this.audioPlaying = 1;
-        this.videoPlaying = params.call_type != "audio" ? 1 : 0;
-        let constraints = {
-            audio: true,
-            video: params.call_type != "audio"
-            // video: {
-            //     mandatory: {
-            //         maxWidth: 320,
-            //         maxFrameRate: 15,
-            //         minFrameRate: 15
-            //     }
-            // }
-        };
-        var options = {
-            mediaConstraints: constraints,
-            localVideo: params.localVideo,
-            onicecandidate: (candidate) => {
-                this.onIceCandidate(candidate, this.currentUser);
-            },
-            onerror: this.onError
-        };
-        let webRtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendonly(options, (error) => {
-            if (error) {
-                return console.error(error);
-            }
-            webRtcPeer.generateOffer((error, offerSdp) => {
-                this.onManyToManyOfferCall(error, offerSdp, params.call_type);
-            });
-        });
-        this.participants[this.currentUser] = webRtcPeer;
-    }
-    JoinGroupCall(params) {
-        this.mediaType = params.call_type;
-        this.localVideo = params.localVideo;
-        (0, CommonHelper_1.SetPlaysInline)(this.localVideo);
-        let constraints = {
-            audio: true,
-            video: params.call_type != "audio"
-            // video: {
-            //     mandatory: {
-            //         maxWidth: 320,
-            //         maxFrameRate: 15,
-            //         minFrameRate: 15
-            //     }
-            // }
-        };
-        var options = {
-            mediaConstraints: constraints,
-            localVideo: params.localVideo,
-            onicecandidate: (candidate) => {
-                this.onIceCandidate(candidate, this.currentFromUser);
-            },
-            onerror: this.onError
-        };
-        let webRtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendonly(options, (error) => {
-            if (error) {
-                return console.error(error);
-            }
-            webRtcPeer.generateOffer((error, offerSdp) => {
-                console.log("======here===it goes inner sess", this.callSession);
-                this.onJoinManyToManyOfferCall(error, offerSdp, params.call_type);
-            });
-            console.log("======here===it goes");
-        });
-        this.participants[this.currentUser] = webRtcPeer;
-    }
-    /*************
-     *
-     * Call one to many Broadcasting
-     *
-     */
-    //public CallOneToMany(params:any) {
-    Broadcasting(params) {
-        this.to = params.to;
-        this.currentFromUser = this.currentUser;
-        this.localVideo = params.localVideo;
-        var options = {
-            localVideo: params.localVideo,
-            //remoteVideo : params.remoteVideo,
-            onicecandidate: (candidate) => {
-                this.onIceCandidate(candidate, this.currentUser);
-            },
-            onerror: this.onError
-        };
-        this.webRtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendonly(options, (error) => {
-            if (error) {
-                return console.error(error);
-            }
-            this.webRtcPeer.generateOffer((error, offerSdp) => {
-                this.onOfferOneToManyCall(error, offerSdp);
-            });
-        });
-    }
-    onOfferOneToManyCall(error, offerSdp) {
-        if (error) {
-            EventHandler_1.default.OnOfferIncomingCall(error, this);
-            return console.error('Error generating the call offer ', error);
-        }
-        let uUID = new Date().getTime().toString();
-        this.UUIDSessions[this.currentUser] = uUID;
-        this.UUIDSessionTypes[uUID] = "one_to_many";
-        let callRequest = new CallRequestModel_1.default();
-        callRequest.from = this.currentUser;
-        callRequest.to = this.to;
-        callRequest.requestID = uUID;
-        callRequest.sessionUUID = uUID;
-        callRequest.mcToken = this.McToken;
-        callRequest.sdpOffer = offerSdp;
-        callRequest.call_type = "one_to_many";
-        callRequest.SendCallRequest(this.ws);
-    }
-    AcceptBroadcast(remoteVideo) {
-        let from = this.currentFromUser;
-        var options = {
-            remoteVideo: remoteVideo,
-            onicecandidate: (candidate) => {
-                this.onIceCandidate(candidate, from);
-            },
-            onerror: this.onError
-        };
-        this.webRtcPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerRecvonly(options, (error) => {
-            if (error) {
-                return console.error(error);
-            }
-            this.webRtcPeer.generateOffer((error, offerSdp) => {
-                this.onOfferIncomingCall(error, offerSdp, from);
-            });
-        });
-    }
-    /*********************************************************
-     *
-     * End Call One To Many Type
-     *
-     *
-     *********************************************************/
-    /**
-     *
-     * @param error
-     * @param offerSdp
-     * @returns
-     */
-    onOfferCall(error, offerSdp, media_type) {
-        if (error) {
-            EventHandler_1.default.OnOfferIncomingCall(error, this);
-            return console.error('Error generating the call offer ', error);
-        }
-        let uUID = new Date().getTime().toString();
-        let callRequest = new CallRequestModel_1.default();
-        callRequest.from = this.currentUser;
-        callRequest.to = this.to;
-        callRequest.requestID = uUID;
-        callRequest.sessionUUID = uUID;
-        callRequest.mcToken = this.McToken;
-        callRequest.sdpOffer = offerSdp;
-        callRequest.media_type = media_type;
-        callRequest.SendCallRequest(this.ws);
-        this.UUIDSessions[this.currentUser] = uUID;
-        this.UUIDSessionTypes[uUID] = "one_to_one";
-        console.log(' OnOfferCall :: :: ::', media_type);
-        // var message = {
-        // 	id : 'call',
-        // 	from : this.currentUser,
-        // 	to : this.to,
-        // 	sdpOffer : offerSdp
-        // };
-        // console.log('Invoking SDP Message',message);
-        // this.SendPacket(message);
-    }
-    /*********************************************************
-     *
-     *  Many One To Many Offer
-     *
-     *
-     *********************************************************/
-    /**
-     *
-     * @param error
-     * @param offerSdp
-     * @returns
-     */
-    onManyToManyOfferCall(error, offerSdp, media_type) {
-        if (error) {
-            EventHandler_1.default.OnOfferIncomingCall(error, this);
-            return console.error('Error generating the call offer ', error);
-        }
-        let uUID = new Date().getTime().toString();
-        this.callSession = uUID;
-        let callRequest = new CallRequestModel_1.default();
-        callRequest.from = this.currentUser;
-        callRequest.to = this.to;
-        callRequest.requestID = uUID;
-        callRequest.sessionUUID = uUID;
-        callRequest.mcToken = this.McToken;
-        callRequest.sdpOffer = offerSdp;
-        callRequest.media_type = media_type;
-        callRequest.call_type = "many_to_many";
-        callRequest.SendCallRequest(this.ws);
-        console.log(' OnOfferCall :: :: ::', media_type);
-    }
-    onJoinManyToManyOfferCall(error, offerSdp, media_type) {
-        if (error) {
-            EventHandler_1.default.OnOfferIncomingCall(error, this);
-            return console.error('Error generating the call offer ', error);
-        }
-        console.log("======here===it goes inner", media_type);
-        let uUID = new Date().getTime().toString();
-        let sessionUUID = this.callSession;
-        console.log("======here===it goes sess", sessionUUID);
-        var message = {
-            from: this.currentUser,
-            sdpOffer: offerSdp,
-            // Custom Attributes
-            responseCode: 200,
-            responseMessage: "accepted",
-            requestType: "session_invite",
-            type: "request",
-            session_type: "call",
-            call_type: "many_to_many",
-            media_type: media_type,
-            requestID: uUID,
-            sessionUUID: this.callSession,
-            mcToken: this.mcToken
-        };
-        this.SendPacket(message);
-    }
-    onParticipantOffer(error, offerSdp, to) {
-        if (error) {
-            EventHandler_1.default.OnOfferIncomingCall(error, this);
-            return console.error('Error generating the call offer ', error);
-        }
-        let uUID = new Date().getTime().toString();
-        var message = {
-            from: this.currentUser,
-            to: to,
-            requestType: "to_receive_stream",
-            sdpOffer: offerSdp,
-            requestID: uUID,
-            type: "request",
-            sessionUUID: this.callSession,
-            mcToken: this.McToken
-        };
-        console.log("===onParticipantOffer==", message);
-        this.SendPacket(message);
-    }
-    DisposeWebrtc(status) {
-        for (var p in this.participants) {
-            let partiRTC = this.participants[p];
-            if (partiRTC && partiRTC != undefined) {
-                partiRTC.dispose();
-            }
-        }
-        this.participants = {};
-        this.participantVideo = {};
-        this.callSession = "";
-        this.participatArray = [];
-    }
-    onError(error) {
-        EventHandler_1.default.OnRTCPeer(error, this);
-    }
-    onIceCandidate(candidate, referenceID) {
-        console.log("Local candidate" + JSON.stringify(candidate));
-        var message = {
-            requestType: 'onIceCandidate',
-            candidate: candidate,
-            referenceID: referenceID,
-            sessionUUID: this.callSession
-        };
-        this.SendPacket(message);
-    }
-    SendPacket(message) {
-        var jsonMessage = JSON.stringify(message);
-        console.log('Sending message: ' + jsonMessage);
-        if (this.ws != undefined)
-            this.ws.send(jsonMessage);
-        else
-            EventHandler_1.default.OnAuthInitialError('', this);
-    }
-    /**
-     * EndCall
-     */
-    /***
-     *
-     * On Participant IceCandidate
-     *
-     */
-    OnParticipantIceCandidate(candidate, ref) {
-        var message = {
-            requestType: 'onIceCandidate',
-            candidate: candidate,
-            referenceID: ref,
-            sessionUUID: this.callSession
-        };
-        this.SendPacket(message);
-    }
-    SetMicMute() {
-        if (this.localVideo && this.localVideo != undefined) {
-            let video = (this.mediaType == "video") ? 1 : 0;
-            this.audioPlaying = 0;
-            let state = {
-                "requestType": "state_information",
-                "type": "request",
-                "requestID": new Date().getTime().toString(),
-                "sessionUUID": this.callSession,
-                "mcToken": this.McToken,
-                "referenceID": this.currentUser,
-                "audioInformation": this.audioPlaying,
-                "videoInformation": this.videoPlaying
-            };
-            this.SendPacket(state);
-            if (this.localVideo.srcObject != null)
-                this.localVideo.srcObject.getAudioTracks()[0].enabled = false;
-            if (this.localVideo.localName == "audio")
-                this.localVideo.audioTracks[0].enabled = false;
-        }
-    }
-    /**
-     * SetMicMute
-     */
-    SetMicUnmute() {
-        if (this.localVideo && this.localVideo != undefined) {
-            let video = (this.mediaType == "video") ? 1 : 0;
-            this.audioPlaying = 1;
-            let state = {
-                "requestType": "state_information",
-                "type": "request",
-                "requestID": new Date().getTime().toString(),
-                "sessionUUID": this.callSession,
-                "mcToken": this.McToken,
-                "referenceID": this.currentUser,
-                "audioInformation": this.audioPlaying,
-                "videoInformation": this.videoPlaying
-            };
-            this.SendPacket(state);
-            if (this.localVideo.srcObject != null)
-                this.localVideo.srcObject.getAudioTracks()[0].enabled = true;
-            if (this.localVideo.localName == "audio")
-                this.localVideo.audioTracks[0].enabled = true;
-        }
-    }
-    /**
-     * SetCameraOn
-     */
-    SetCameraOn() {
-        if (this.localVideo && this.localVideo != undefined) {
-            this.videoPlaying = 1;
-            let state = {
-                "requestType": "state_information",
-                "type": "request",
-                "requestID": new Date().getTime().toString(),
-                "sessionUUID": this.callSession,
-                "mcToken": this.McToken,
-                "referenceID": this.currentUser,
-                "audioInformation": this.audioPlaying,
-                "videoInformation": this.videoPlaying
-            };
-            this.SendPacket(state);
-            this.localVideo.srcObject.getVideoTracks()[0].enabled = true;
-        }
-    }
-    /**
-     * SetCameraOff
-     */
-    SetCameraOff() {
-        if (this.localVideo && this.localVideo != undefined) {
-            this.videoPlaying = 0;
-            let state = {
-                "requestType": "state_information",
-                "type": "request",
-                "requestID": new Date().getTime().toString(),
-                "sessionUUID": this.callSession,
-                "mcToken": this.McToken,
-                "referenceID": this.currentUser,
-                "audioInformation": this.audioPlaying,
-                "videoInformation": this.videoPlaying
-            };
-            this.SendPacket(state);
-            this.localVideo.srcObject.getVideoTracks()[0].enabled = false;
-        }
-    }
-    LeaveGroupCall() {
-        let response = {
-            "type": "request",
-            "requestType": "session_cancel",
-            "requestID": new Date().getTime().toString(),
-            "sessionUUID": this.callSession,
-            "mcToken": this.McToken
-        };
-        this.SendPacket(response);
-        this.DisposeWebrtc(false);
-    }
-    CancelCall() {
-        let from = this.currentFromUser;
-        let response = {
-            "type": "request",
-            "requestType": "session_cancel",
-            "requestID": new Date().getTime().toString(),
-            "sessionUUID": this.UUIDSessions[from],
-            "mcToken": this.McToken
-        };
-        this.SendPacket(response);
-        this.DisposeWebrtc(false);
-    }
-    sendStateRPC(data, uUID, store = 1, requestType = 'hv_info', extraParams = {}) {
-        let request = {};
-        request.requestType = requestType;
-        //hv_info --> Host to All viewers Communication
-        request.type = 'request';
-        request.requestID = new Date().getTime().toString();
-        if (uUID === -1) {
-            delete request.sessionUUID;
-        }
-        else {
-            request.sessionUUID = uUID ? uUID : this.UUIDSessions[this.currentUser];
-        }
-        request.mcToken = this.McToken;
-        request.referenceID = this.currentUser;
-        request.data = data;
-        request.store = store; //This information should be save or not for new viewers
-        if (extraParams && Object.keys(extraParams).length) {
-            request = Object.assign(Object.assign({}, request), extraParams);
-        }
-        this.ws.send(JSON.stringify(request));
-    }
-    registerPingWorker() {
-        const response = `let pingInterval;
-                            onmessage = (res) => {
-                                let data = res.data;
-                                console.log('Message received from main script');
-                                const method = data.method;
-                                if (method === 'format') {
-                                    postMessage({
-                                        data: {
-                                            'res': 'I am a customized result string.',
-                                        }
-                                    });
-                                }
-                                else if (method === 'startPingInterval')
-                                {
-                                    if(!data.interval)
-                                    {
-                                        data.interval =  5000;
-                                    }
-                                    clearPingInterval();
-                                    startPingInterval(data.interval);
-                                }
-                                else if(method === 'clearPingInterval')
-                                {
-                                    clearPingInterval();
-                                }
-                                console.log('Posting message back to main script');
-                            }
-                            
-                            function startPingInterval(interval)
-                            {
-                                pingInterval = setInterval(()=>{
-                                    postMessage({
-                                            'sendPing': true
-                                    });
-                                },interval)
-                            }
-                            function  clearPingInterval()
-                            {
-                                if(pingInterval)
-                                {
-                                    clearInterval(pingInterval);
-                                }
-                            }
-                            `;
-        const blob = new Blob([response], { type: 'application/javascript' });
-        this.pingWorker = new Worker(URL.createObjectURL(blob));
-        if (this.pingWorker) {
-            // event processing
-            this.pingWorker.onmessage = (e) => {
-                if (e && e.data && e.data.sendPing) {
-                    this.sendPing();
-                }
-                else {
-                    //console.log(`Response: ${JSON.stringify(e)}`);
-                }
-            };
-            //Start pinging server
-            this.pingWorker.postMessage({ method: 'startPingInterval', interval: 5000 });
-        }
-    }
-    sendPing() {
-        try {
-            let pingCount = 0;
-            /*for (var uUID in this.webRtcPeers) {
-              if(this.pingSessionStopped[uUID])
-              {
-                console.log("SDK not sending Ping session already stopped from server with 400 pong for: ", uUID);
-              }
-              else
-              {
-                pingCount++;
-                this.sendStateRPC({}, uUID, 0, 'session_ping')
-                console.log("SDK Ping sent for: ", uUID);
-              }
-            }*/
-            if (!pingCount || true) {
-                this.sendStateRPC({}, -1, 0, 'ping');
-                console.log("SDK Ping sent!");
-            }
-        }
-        catch (e) {
-            console.log("Error while sending ping to server.", e);
-        }
-    }
-}
-exports.default = ManyToMany;
-
-
-/***/ }),
-/* 29 */
+/* 30 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
