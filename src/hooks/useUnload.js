@@ -10,7 +10,11 @@ const useUnload = (fn) => {
   useEffect(() => {
     const onUnload = (...args) => cb.current?.(...args);
 
-    window.addEventListener("beforeunload", onUnload);
+    window.addEventListener("beforeunload", (e)=>{
+        e.preventDefault();
+        e.returnValue = "";
+    });
+    window.addEventListener("unload", onUnload);
 
     return () => window.removeEventListener("beforeunload", onUnload);
   }, []);

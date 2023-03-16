@@ -211,8 +211,6 @@ function Main(props) {
     };
 
     useUnload((e) => {
-        e.preventDefault();
-        e.returnValue = "";
         // console.log("hello");
         console.log("my log", callMessage);
         if (["Ringing", "Calling"].includes(callMessage)) {
