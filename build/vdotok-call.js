@@ -1366,7 +1366,7 @@ class Client extends events_1.EventEmitter {
             callRequest.requestType = 'session_invite';
             if (params.timeout && params.timeout > 0) {
                 this.sessionInfo[uUID].timeOutInterval = setTimeout(() => {
-                    if (["STARTING", "RINGING", "CONNECTING", "TRYING"].includes(this.sessionInfo[uUID].call_state)) {
+                    if (["STARTING", "ALERTING", "CONNECTING", "TRYING"].includes(this.sessionInfo[uUID].call_state)) {
                         this.sendStateRPC({}, uUID, 0, "timeout");
                     }
                 }, params.timeout*1000);
