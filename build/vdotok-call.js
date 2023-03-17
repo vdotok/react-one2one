@@ -1,5 +1,5 @@
 /*!
- * 
+ *
  *  VdoTok Call version 0.17.1
  */
 window["CVDOTOK"] =
@@ -1369,7 +1369,7 @@ class Client extends events_1.EventEmitter {
                     if (["STARTING", "RINGING", "CONNECTING", "TRYING"].includes(this.sessionInfo[uUID].call_state)) {
                         this.sendStateRPC({}, uUID, 0, "timeout");
                     }
-                }, params.timeout);
+                }, params.timeout*1000);
             }
             delete callRequest.referenceID;
         }
@@ -4021,7 +4021,7 @@ class ScreenSharingMobile {
             // eslint-disable-next-line @typescript-eslint/ban-ts-ignore
             // @ts-ignore
             // eslint-disable-next-line @typescript-eslint/no-this-alias
-            const context = this, 
+            const context = this,
             // eslint-disable-next-line prefer-rest-params
             args = arguments;
             const later = function () {
@@ -4060,7 +4060,7 @@ class ScreenSharingMobile {
                 async : true, // setting it to false may slow the generation a bit down
                 allowTaint : true,
                 foreignObjectRendering : true,*!/
-    
+
           imageTimeout: 800, // this further delays loading, however this solved a no images in captured screenshot issue
           logging: false,
         });*/
@@ -4881,7 +4881,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
    Copyright © 2012-2021 Faisal Salman <f@faisalman.com>
    MIT License *//*
    Detect Browser, Engine, OS, CPU, and Device type/model from User-Agent data.
-   Supports browser & node.js environment. 
+   Supports browser & node.js environment.
    Demo   : https://faisalman.github.io/ua-parser-js
    Source : https://github.com/faisalman/ua-parser-js */
 /////////////////////////////////////////////////////////////////////////////////
@@ -5209,7 +5209,7 @@ var __WEBPACK_AMD_DEFINE_RESULT__;//////////////////////////////////////////////
                                                                                 // Polaris/Lynx/Dillo/iCab/Doris/Amaya/w3m/NetSurf/Sleipnir/Obigo/Mosaic/Go/ICE/UP.Browser
             /(links) \(([\w\.]+)/i                                              // Links
             ], [NAME, VERSION], [
-            
+
             /(cobalt)\/([\w\.]+)/i                                              // Cobalt
             ], [NAME, [VERSION, /master.|lts./, ""]]
         ],
