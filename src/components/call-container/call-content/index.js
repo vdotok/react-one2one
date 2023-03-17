@@ -65,6 +65,7 @@ function CallContent() {
       audio,
       videoType: video ? "camera" : "audio",
       to: [selectedUser.ref_id],
+      timeout: 40,
     };
 
     if (reconnectCall) {

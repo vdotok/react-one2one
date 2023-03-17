@@ -313,7 +313,8 @@ class Client extends events_1.EventEmitter {
                             mediaType: isVideoCall ? "video" : "audio",
                             isPeer: messageData.isPeer,
                             isSDPAnswerSend: 0,
-                            isInitiator: 0
+                            isInitiator: 0,
+                            call_state: "PENDING_ACCEPT"
                         };
                     if (!(messageData.data && messageData.data.stateInfo)) {
                         if (!messageData.data) {
@@ -397,13 +398,9 @@ class Client extends events_1.EventEmitter {
                     break;
                 case 'session_break':
                     EventHandler_1.default.SessionBreak(messageData, this);
-                    //this.SessionCancel(messageData, 'break');
-                    //this.DisposeWebrtc(true);
                     break;
                 case 'session_busy':
                     EventHandler_1.default.SessionBusy(messageData, this);
-                    //this.SessionCancel(messageData, 'break');
-                    //this.DisposeWebrtc(true);
                     break;
                 case 'state_information':
                     console.log("===onParticipantOffer== exiting left", messageData, new Date().toLocaleTimeString());
@@ -691,7 +688,13 @@ class Client extends events_1.EventEmitter {
         EventHandler_1.default.PublicURL(messageData, this);
     }
     OnExistingParticipants(messageData) {
-        if (messageData.total_participants) {
+        this.sendViewersCountRPC(messageData);
+        if (this.isManyToMany && Object.keys(this.manyToMany).length) {
+            this.manyToMany.OnExistingParticipants(messageData);
+        }
+    }
+    sendViewersCountRPC(messageData) {
+        if (this.sessionInfo[messageData.sessionUUID] && this.sessionInfo[messageData.sessionUUID].call_type === "one_to_many") {
             this.participantsInCall[messageData.sessionUUID] = messageData.total_participants ? (messageData.total_participants) : (this.participantsInCall[messageData.sessionUUID] + 1);
             this.sendCustomRPC({
                 type: "Viewer_Count",
@@ -700,31 +703,16 @@ class Client extends events_1.EventEmitter {
                 count: this.participantsInCall[messageData.sessionUUID] - 1
             }, messageData.sessionUUID);
         }
-        if (this.isManyToMany && Object.keys(this.manyToMany).length) {
-            this.manyToMany.OnExistingParticipants(messageData);
-        }
     }
     OnNewParticipant(messageData) {
         EventHandler_1.default.OnNewParticipant(messageData, this);
-        this.participantsInCall[messageData.sessionUUID] = messageData.total_participants ? (messageData.total_participants) : (this.participantsInCall[messageData.sessionUUID] + 1);
-        this.sendCustomRPC({
-            type: "Viewer_Count",
-            message: "Viewers count updated.",
-            uuid: messageData.sessionUUID,
-            count: this.participantsInCall[messageData.sessionUUID] - 1
-        }, messageData.sessionUUID);
+        this.sendViewersCountRPC(messageData);
         if (this.isManyToMany && Object.keys(this.manyToMany).length) {
             this.manyToMany.OnNewParticipant(messageData);
         }
     }
     OnParticipantLeft(messageData) {
-        this.participantsInCall[messageData.sessionUUID] = messageData.total_participants ? (messageData.total_participants) : (this.participantsInCall[messageData.sessionUUID] - 1);
-        this.sendCustomRPC({
-            type: "Viewer_Count",
-            message: "Viewers count updated.",
-            uuid: messageData.sessionUUID,
-            count: this.participantsInCall[messageData.sessionUUID] - 1
-        }, messageData.sessionUUID);
+        this.sendViewersCountRPC(messageData);
         if (this.isManyToMany && Object.keys(this.manyToMany).length) {
             this.manyToMany.OnParticipantLeft(messageData);
         }
@@ -751,13 +739,7 @@ class Client extends events_1.EventEmitter {
     SessionCancel(messageData, type = 'cancel') {
         console.log("SessionCancel messageData", { messageData });
         if (type != 'break') {
-            this.participantsInCall[messageData.sessionUUID] = messageData.total_participants ? (messageData.total_participants) : (this.participantsInCall[messageData.sessionUUID] - 1);
-            this.sendCustomRPC({
-                type: "Viewer_Count",
-                message: "Viewers count updated.",
-                uuid: messageData.sessionUUID,
-                count: this.participantsInCall[messageData.sessionUUID] - 1
-            }, messageData.sessionUUID);
+            this.sendViewersCountRPC(messageData);
         }
         if (this.isManyToMany && Object.keys(this.manyToMany).length) {
             this.manyToMany.OnSessionCancel(messageData);
@@ -1045,7 +1027,7 @@ class Client extends events_1.EventEmitter {
         }
         let uUID = (params.hasOwnProperty("sessionUUID")) ? params["sessionUUID"] : new Date().getTime().toString();
         if (!this.sessionInfo[uUID]) {
-            this.sessionInfo[uUID] = { call_type: params.call_type, isPeer: params.isPeer || 0, isInitiator: params.isInitiator || 0 };
+            this.sessionInfo[uUID] = { call_type: params.call_type, isPeer: params.isPeer || 0, isInitiator: params.isInitiator || 0, call_state: "STARTING" };
         }
         this.videoStatus[uUID] = (params.video ? 1 : 0);
         this.isEmptyVideoStarted[uUID] = !this.videoStatus[uUID];
@@ -1382,6 +1364,13 @@ class Client extends events_1.EventEmitter {
         }
         else {
             callRequest.requestType = 'session_invite';
+            if (params.timeout && params.timeout > 0) {
+                this.sessionInfo[uUID].timeOutInterval = setTimeout(() => {
+                    if (["STARTING", "RINGING", "CONNECTING", "TRYING"].includes(this.sessionInfo[uUID].call_state)) {
+                        this.sendStateRPC({}, uUID, 0, "timeout");
+                    }
+                }, params.timeout);
+            }
             delete callRequest.referenceID;
         }
         callRequest.SendCallRequest(this.ws);
@@ -2592,6 +2581,7 @@ class EventHandlerService {
                         to: instance.to,
                         call_type: callType
                     });
+                    this.updateCallState(instance, res.sessionUUID, "TRYING");
                     break;
                 case 180:
                     instance.emit("call", {
@@ -2600,6 +2590,7 @@ class EventHandlerService {
                         to: instance.to,
                         call_type: callType
                     });
+                    this.updateCallState(instance, res.sessionUUID, "CONNECTING");
                     break;
                 case 183:
                     instance.emit("call", {
@@ -2608,6 +2599,7 @@ class EventHandlerService {
                         to: instance.to,
                         call_type: callType
                     });
+                    this.updateCallState(instance, res.sessionUUID, "ALERTING");
                     break;
                 case 200:
                     if (res.responseMessage == "no session exist against this URL") {
@@ -2618,6 +2610,7 @@ class EventHandlerService {
                             call_type: callType,
                             uuid: res.sessionUUID
                         });
+                        this.updateCallState(instance, res.sessionUUID, "ENDED");
                     }
                     else {
                         instance.emit("call", {
@@ -2627,12 +2620,14 @@ class EventHandlerService {
                             call_type: callType,
                             data: res.data
                         });
+                        this.updateCallState(instance, res.sessionUUID, "ACCEPTED");
                     }
                     break;
                 case 402:
                     if (callType == "one_to_one" || callType == "one_to_one_with_ai")
                         instance.DisposeWebrtc(true);
                     instance.emit("call", { type: "INSUFFICIENT_FUNDS", message: res.responseMessage, uuid: res.sessionUUID });
+                    this.updateCallState(instance, res.sessionUUID, "ENDED");
                     break;
                 case 404:
                     if (res.responseMessage == "invalid target") {
@@ -2652,6 +2647,7 @@ class EventHandlerService {
                             uuid: res.sessionUUID
                         });
                     }
+                    this.updateCallState(instance, res.sessionUUID, "ENDED");
                     if (callType == "one_to_one" || callType == "one_to_one_with_ai")
                         instance.DisposeWebrtc(true);
                     break;
@@ -2677,7 +2673,13 @@ class EventHandlerService {
                         uuid: res.sessionUUID,
                         data: res.data
                     });
+                    this.updateCallState(instance, res.sessionUUID, "ENDED");
             }
+        }
+    }
+    updateCallState(instance, uuid, state) {
+        if (instance.sessionInfo[uuid]) {
+            instance.sessionInfo[uuid].call_state = state;
         }
     }
     SessionBusy(res, instance) {
@@ -2690,6 +2692,7 @@ class EventHandlerService {
                 call_type: res.call_type,
                 uuid: res.sessionUUID
             });
+            this.updateCallState(instance, res.sessionUUID, "ENDED");
         }
         else {
             console.log(res.responseMessage);
@@ -2768,6 +2771,7 @@ class EventHandlerService {
                     });
             }
         }
+        this.updateCallState(instance, res.sessionUUID, "ENDED");
     }
     SetCallerStatus(res, instance) {
         instance.emit("call", {
