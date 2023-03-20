@@ -647,6 +647,7 @@ class Client extends events_1.EventEmitter {
                     params.sessionUUID = params.uUID = uUID;
                     params.audio = this.audioStatus[uUID] ? this.audioStatus[uUID] : params.audio;
                     params.video = this.videoStatus[uUID] ? this.videoStatus[uUID] : params.video;
+                    params.isReInvite = 1;
                     this.AcceptCall(params).then((results) => {
                         console.log("Reinvite Accept Response: ", results);
                     });
@@ -916,14 +917,14 @@ class Client extends events_1.EventEmitter {
                                 EventHandler_1.default.SessionSDP(error, this);
                                 return console.error(error);
                             }
-                            this.onOfferIncomingCall(error, answerSdp, from, uUID, 1, 0);
+                            this.onOfferIncomingCall(error, answerSdp, from, uUID, 1, params.isReInvite ? params.isReInvite : 0);
                             resolve(uUID);
                         });
                     }
                     else {
                         //this is call through server
                         this.webRtcPeers[uUID].generateOffer((error, offerSdp) => {
-                            this.onOfferIncomingCall(error, offerSdp, from, uUID, 0, 0);
+                            this.onOfferIncomingCall(error, offerSdp, from, uUID, 0, params.isReInvite ? params.isReInvite : 0);
                             resolve(uUID);
                         });
                     }
