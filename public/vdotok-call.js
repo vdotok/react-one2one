@@ -628,7 +628,7 @@ class Client extends events_1.EventEmitter {
             return;
         }
         if (messageData.call_type === "one_to_one") {
-            if (this.webRtcPeers[uUID]) {
+            if (this.webRtcPeers[uUID] && false) {
                 this.webRtcPeers[uUID].processOffer(sdp, (error, answerSdp) => {
                     if (error) {
                         EventHandler_1.default.SessionSDP(error, this);
@@ -639,15 +639,22 @@ class Client extends events_1.EventEmitter {
                 });
             }
             else {
-                this.sessionInfo[uUID] = {
-                    incomingCallData: { isPeer: 1, callerSDP: sdp },
-                    isPeer: 1,
-                    callerSDP: sdp,
-                    sessionUUID: uUID,
-                    isInitiator: 0,
-                    isSDPAnswerSend: 0,
-                };
-                //TODO create peerConnection if not exist
+                if (this.sessionInfo[uUID] && this.sessionInfo[uUID].currentCallParams) {
+                    let params = this.sessionInfo[uUID].currentCallParams;
+                    this.sessionInfo[uUID].isSDPAnswerSend = 0;
+                    params.isPeer = 1;
+                    params.sdp = sdp;
+                    params.sessionUUID = params.uUID = uUID;
+                    params.audio = this.audioStatus[uUID] ? this.audioStatus[uUID] : params.audio;
+                    params.video = this.videoStatus[uUID] ? this.videoStatus[uUID] : params.video;
+                    this.AcceptCall(params).then((results) => {
+                        console.log("Reinvite Accept Response: ", results);
+                    });
+                }
+                else {
+                    //EventHandler.OnIncomingCall(messageData, this); we can also send this call to app so they can accept manually
+                    console.error("Cannot AutoAccept Call!");
+                }
             }
         }
     }
