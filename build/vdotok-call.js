@@ -1384,7 +1384,7 @@ class Client extends events_1.EventEmitter {
         else {
             callRequest.requestType = 'session_invite';
             if (params.timeout && params.timeout > 0) {
-                this.sessionInfo[uUID].timeOutInterval = setTimeout(() => {
+                this.sessionInfo[uUID].callTimeoutInterval = setTimeout(() => {
                     if (["STARTING", "ALERTING", "CONNECTING", "TRYING"].includes(this.sessionInfo[uUID].call_state)) {
                         this.sendStateRPC({}, uUID, 0, "session_timeout");
                     }
@@ -1422,6 +1422,9 @@ class Client extends events_1.EventEmitter {
                         }
                         if (this.webRtcPeers[uUID] && this.webRtcPeers[uUID].peerConnection) {
                             this.webRtcPeers[uUID].peerConnection.removeEventListener("iceconnectionstatechange", this.onIceError, false);
+                        }
+                        if (this.sessionInfo[uUID].callTimeoutInterval) {
+                            clearTimeout(this.sessionInfo[uUID].callTimeoutInterval);
                         }
                         delete this.webRtcPeers[uUID];
                         delete this.sessionInfo[uUID];
