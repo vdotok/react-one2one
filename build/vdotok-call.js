@@ -252,9 +252,14 @@ class Client extends events_1.EventEmitter {
                 console.log("Current call session count", this.sessionInfo.length);
                 if (this.sessionInfo && Object.keys(this.sessionInfo).length >= 1) {
                     for (let UUID in this.sessionInfo) {
-                        console.log("Currently trying auto reconnect for  call session", UUID);
-                        let result = await this.autoReconnectCall(UUID);
-                        console.log("Reconnect result -> ", result);
+                        if (this.webRtcPeers[UUID] && this.webRtcPeers[UUID].peerConnection && this.webRtcPeers[UUID].peerConnection.connectionState === "connected") {
+                            console.log("Peer got auto connected no need to reconnect!");
+                        }
+                        else {
+                            console.log("Currently trying auto reconnect for  call session", UUID);
+                            let result = await this.autoReconnectCall(UUID);
+                            console.log("Reconnect result -> ", result);
+                        }
                     }
                 }
             }
