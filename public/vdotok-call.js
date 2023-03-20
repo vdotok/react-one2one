@@ -4615,7 +4615,9 @@ class WebRtcPeer extends events_1.EventEmitter {
         }
     }
     showLocalVideo() {
-        this.localVideo.srcObject = this.videoStream;
+        this.localVideo.srcObject = this.videoStream
+            ? this.videoStream
+            : this.audioStream;
         this.localVideo.muted = true;
     }
     send(data) {
@@ -4732,7 +4734,7 @@ class WebRtcPeer extends events_1.EventEmitter {
         if (this.peerConnection.signalingState === "closed") {
             this.callback('The peer connection object is in "closed" state. This is most likely due to an invocation of the dispose method before accepting in the dialogue');
         }
-        if (this.videoStream && this.localVideo) {
+        if ((this.audioStream || this.videoStream) && this.localVideo) {
             this.showLocalVideo();
         }
         if (this.videoStream) {
