@@ -336,6 +336,10 @@ class Client extends events_1.EventEmitter {
                     console.info('Communication ended by remote peer');
                     this.StopSession(messageData);
                     break;
+                case 'session_timeout':
+                    console.info('Session Timeout');
+                    this.StopSession(messageData);
+                    break;
                 case 'iceCandidate':
                     if (this.reconnectCheckInterval[messageData.sessionUUID]) {
                         console.log("Ice received no need to reconnect!");
