@@ -252,14 +252,9 @@ class Client extends events_1.EventEmitter {
                 console.log("Current call session count", this.sessionInfo.length);
                 if (this.sessionInfo && Object.keys(this.sessionInfo).length >= 1) {
                     for (let UUID in this.sessionInfo) {
-                        if (this.webRtcPeers[UUID] && this.webRtcPeers[UUID].peerConnection && this.webRtcPeers[UUID].peerConnection.connectionState === "connected") {
-                            console.log("Peer got auto connected no need to reconnect!");
-                        }
-                        else {
-                            console.log("Currently trying auto reconnect for  call session", UUID);
-                            let result = await this.autoReconnectCall(UUID);
-                            console.log("Reconnect result -> ", result);
-                        }
+                        console.log("Currently trying auto reconnect for  call session", UUID);
+                        let result = await this.autoReconnectCall(UUID);
+                        console.log("Reconnect result -> ", result);
                     }
                 }
             }
@@ -268,10 +263,22 @@ class Client extends events_1.EventEmitter {
             }
         }, 1500);
     }
+    cleanIntervals() {
+        if (this.socketCloseCheck) {
+            clearInterval(this.socketCloseCheck);
+        }
+        if (this.pingWorker) {
+            this.pingWorker.postMessage({ method: 'clearPingInterval' });
+        }
+        if (this.reconnectCheckInterval) {
+            clearTimeout(this.reconnectCheckInterval);
+        }
+    }
     Connect(mediaServer, selfReconnect = false) {
         this.socketState = "connecting";
         this.ws = new WebSocket(mediaServer);
         this.mediaServer = mediaServer;
+        this.cleanIntervals();
         this.ws.onmessage = (message) => {
             var messageData = JSON.parse(message.data);
             console.log('Received message: ', messageData);
@@ -544,6 +551,9 @@ class Client extends events_1.EventEmitter {
     }
     autoReconnectCall(uUID, params = null) {
         var _a, _b;
+        if (this.webRtcPeers[uUID] && this.webRtcPeers[uUID].peerConnection && this.webRtcPeers[uUID].peerConnection.connectionState === "connected") {
+            return { message: "RTC Peer got auto connected no need for manual reconnect!", status: true };
+        }
         params = params || (this.sessionInfo[uUID] && this.sessionInfo[uUID].currentCallParams ? this.sessionInfo[uUID].currentCallParams : null);
         if (params) {
             if (params.videoType === 'screen' && this.localVideos[uUID]) {
@@ -1884,15 +1894,7 @@ class Client extends events_1.EventEmitter {
         this.manyToMany.LeaveGroupCall();
     }
     Disconnect() {
-        if (this.pingWorker) {
-            this.pingWorker.postMessage({ method: 'clearPingInterval' });
-        }
-        if (this.reconnectCheckInterval) {
-            clearInterval(this.reconnectCheckInterval);
-        }
-        if (this.socketCloseCheck) {
-            clearInterval(this.socketCloseCheck);
-        }
+        this.cleanIntervals();
         this.selfClose = true;
         if (this.ws) {
             this.ws.close();
