@@ -188,10 +188,9 @@ function Main(props) {
                 return callMessageHandler(response);
             // case "CALL_STARTED":
             //   return callStatusHandler(response);
-            case "MISSED_CALL":
             //case "PARTICIPANT_LEFT":
             case "CALL_ENDED":
-                return endCallHandler();
+            case "MISSED_CALL":
             case "SESSION_END":
             case "PARTICIPANT_UNAVAILABLE":
             case "INVALID_TARGET":
