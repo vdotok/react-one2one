@@ -628,7 +628,7 @@ class Client extends events_1.EventEmitter {
             return;
         }
         if (messageData.call_type === "one_to_one") {
-            if (this.webRtcPeers[uUID] && false) {
+            if (this.webRtcPeers[uUID] && this.sessionInfo[uUID] && !this.sessionInfo[uUID].isInitiator) {
                 this.webRtcPeers[uUID].processOffer(sdp, (error, answerSdp) => {
                     if (error) {
                         EventHandler_1.default.SessionSDP(error, this);
