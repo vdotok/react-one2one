@@ -11,7 +11,8 @@ import { Container } from "./styles";
 
 function CallContent() {
   const {
-    state: { selectedUser },
+    state: { selectedUser, getUser },
+    dispatch: userDispatch,
   } = useContext(UserContext);
   const {
     state: {
@@ -56,7 +57,7 @@ function CallContent() {
       audio: true,
     });
   };
-
+console.log("**** ",{selectedUser, getUser})
   const callHandler = () => {
     const params = {
       localVideo: document.getElementById("localVideo"),

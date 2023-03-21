@@ -64,6 +64,14 @@ function Main(props) {
         "presistCallData",
         {}
     );
+    const [currentUser] = useLocalStorage("currentUser", {});
+
+    useEffect(() => {
+        console.log("select_user currentUser", { currentUser });
+        if (currentUser.ref_id) {
+            userDispatch({ type: "SELECT_USER", payload: currentUser });
+        }
+    }, [currentUser.ref_id]);
 
     console.log("$$", {usersList});
 

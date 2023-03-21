@@ -7,6 +7,7 @@ import ImageStatus from "components/image-status";
 import { UserContext } from "context/user";
 import { VdotokClientContext } from "context/vdotok-client";
 import { CallContext } from "context/call";
+import {useLocalStorage} from "../../hooks/useLocalStorage";
 const Container = styled.div`
   display: flex;
   align-items: center;
@@ -87,6 +88,7 @@ const callModal = document.getElementById("call_modal");
 function CallModal(props) {
   const { setShowModal, iconName, msg, callType } = props;
 
+    const [currentUser, setCurrentUser] = useLocalStorage("currentUser", {});
   // const [findUser, setFindUser] = useState({});
 
   const {
@@ -130,6 +132,7 @@ function CallModal(props) {
 
   const acceptCall = () => {
     userDispatch({ type: "SELECT_USER", payload: getUser });
+      setCurrentUser(getUser)
     callDispatch({ type: "SET_CALL_TYPE", payload: receivedRes.call_type });
 
       callTypeRef.current = receivedRes.call_type
