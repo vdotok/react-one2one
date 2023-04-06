@@ -52,7 +52,7 @@ function CallContent() {
     vdotokClient.AcceptCall({
       localVideo: document.getElementById("localVideo"),
       remoteVideo: document.getElementById("remoteVideo"),
-      sessionUUID: uuid,
+      sessionUuid: uuid,
       video,
       audio: true,
     });
@@ -72,7 +72,7 @@ console.log("**** ",{selectedUser, getUser})
     if (reconnectCall) {
       params.ref_id = user.ref_id;
       params.re_invite = 1;
-      params.sessionUUID = uuid
+      params.sessionUuid = uuid
     }
     console.log("## call params", { video });
     vdotokClient

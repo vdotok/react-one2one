@@ -88,9 +88,7 @@ function Main(props) {
     const receiverHandler = (receiverRes) => {
         console.log("*** ", {callType: callTypeRef.current, receiverRes});
         if (callTypeRef.current) {
-            console.log("asad setting rejected calls", rejectedCallsRef.current, receiverRes.uuid)
             rejectedCallsRef.current = [...rejectedCallsRef.current, receiverRes.uuid]
-            console.log("asad rejected calls", rejectedCallsRef.current)
             vdotokClientRef.current.sendSessionBusy(receiverRes.from);
             //If user is already in call then rejecting new calls
             return;
@@ -108,7 +106,7 @@ function Main(props) {
         callDispatch({type: "GET_RECEIVED_RES", payload: receiverRes});
         userDispatch({type: "GET_USER", payload: findUser});
         if (
-            receiverRes.call_type === "audio" ||
+            receiverRes.callType === "audio" ||
             !receiverRes?.data?.stateInfo.video
         ) {
             callDispatch({type: "UPDATE_CAMERA", payload: false});
@@ -241,10 +239,10 @@ function Main(props) {
     });
     useEffect(() => {
         console.log("## RECONEECT_CALL_DATA", {vdotokClient, presistCallData});
-        if (isReload && vdotokClient.projectID && presistCallData.uuid) {
+        if (isReload && vdotokClient.projectId && presistCallData.uuid) {
             callDispatch({type: "RECONEECT_CALL_DATA", payload: presistCallData});
         }
-    }, [vdotokClient.projectID, presistCallData.uuid, isReload]);
+    }, [vdotokClient.projectId, presistCallData.uuid, isReload]);
 
     const initializeSDK = () => {
         if (window.parent) {
@@ -254,8 +252,8 @@ function Main(props) {
             window.parent.postMessage("GetDOM", "*");
         }
         let Client = new CVDOTOK.Client({
-            projectID: PROJECT_ID,
-            host: `${user.media_server_map.complete_address}`,
+            projectId: PROJECT_ID,
+            host: `wss://r-stun2.vdotok.dev:8443/call`,
             //host: "wss://q-signalling.vdotok.dev:8443/call",
             stunServer: user.stun_server_map
                 ? user.stun_server_map.complete_address

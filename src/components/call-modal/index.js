@@ -133,9 +133,9 @@ function CallModal(props) {
   const acceptCall = () => {
     userDispatch({ type: "SELECT_USER", payload: getUser });
       setCurrentUser(getUser)
-    callDispatch({ type: "SET_CALL_TYPE", payload: receivedRes.call_type });
+    callDispatch({ type: "SET_CALL_TYPE", payload: receivedRes.callType });
 
-      callTypeRef.current = receivedRes.call_type
+      callTypeRef.current = receivedRes.callType
     setShowModal(false);
   };
 
@@ -163,12 +163,12 @@ function CallModal(props) {
           <ImageStatus
             src={
               callType === "receiver"
-                ? getUser.profile_pic
+                ? getUser?.profile_pic
                 : selectedUser.profile_pic
             }
             name={
               callType === "receiver"
-                ? getUser.full_name
+                ? getUser?.full_name
                 : selectedUser.full_name
             }
             showStatus={false}
@@ -178,12 +178,12 @@ function CallModal(props) {
         </div>
         <p className="username_text">
           {callType === "receiver"
-            ? getUser.full_name
+            ? getUser?.full_name
             : selectedUser.full_name}
         </p>
         <p className="call_info">
           {callType === "receiver"
-            ? `${getUser.full_name} is calling you`
+            ? `${getUser? getUser.full_name: 'Someone'} is calling you`
             : msg}
         </p>
         <div className="btn_container">
