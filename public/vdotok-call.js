@@ -191,8 +191,8 @@ class Client extends events_1.EventEmitter {
         this.projectId = _Credentials.projectId;
         this.stunServer = _Credentials.stunServer;
         if (!this.stunServer) {
-            EventHandler_1.default.OnAuthError("Please provide STUN server address!", this);
-            return;
+            console.warn("No STUN server address provided using google's stun!");
+            this.stunServer = "stun.l.google.com:19302";
         }
         if (!this.projectId) {
             EventHandler_1.default.OnAuthError("Please provide your Project ID!", this);
@@ -1101,6 +1101,7 @@ class Client extends events_1.EventEmitter {
             regMessage.tenantId = this.projectId;
             regMessage.referenceId = referenceId;
             regMessage.authorizationToken = authorizationToken;
+            regMessage.deviceId = this.getDeviceId();
             if (reConnect) {
                 regMessage.reConnect = 1;
             }
@@ -1609,8 +1610,8 @@ class Client extends events_1.EventEmitter {
     onIceCandidate(candidate, uUID) {
         console.log("Local candidate" + JSON.stringify(candidate));
         var message = {
-            id: 'on_ice_candidate',
-            requestType: 'on_ice_candidate',
+            id: 'ice_candidate',
+            requestType: 'ice_candidate',
             type: "request",
             candidate: candidate,
             referenceId: this.isManyToMany ? this.manyToMany.currentParticipantUser : this.currentUser,
@@ -2063,6 +2064,14 @@ class Client extends events_1.EventEmitter {
         }
         this.webRtcPeers = [];
         this.sessionInfo = [];
+    }
+    getDeviceId() {
+        let machineId = localStorage.getItem('VDOTOKDeviceId');
+        if (!machineId) {
+            machineId = crypto.randomUUID();
+            localStorage.setItem('VDOTOKDeviceId', machineId);
+        }
+        return machineId;
     }
 }
 exports.default = Client;
@@ -3200,6 +3209,12 @@ class RegisterModel {
     }
     get reConnect() {
         return this.RegPacket.reConnect;
+    }
+    set deviceId(deviceId) {
+        this.RegPacket.deviceId = deviceId;
+    }
+    get deviceId() {
+        return this.RegPacket.deviceId;
     }
     /**
      * name
