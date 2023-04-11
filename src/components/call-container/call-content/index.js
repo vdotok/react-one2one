@@ -67,7 +67,7 @@ console.log("**** ",{selectedUser, getUser})
       videoType: video ? "camera" : "audio",
       to: [selectedUser.ref_id],
       timeout: 40,
-      isPeer: 0
+      isPeer: 1
     };
 
     if (reconnectCall) {
