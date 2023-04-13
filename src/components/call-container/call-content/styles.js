@@ -25,6 +25,12 @@ export const Container = styled.div`
         /* background-color: gold; */
       }
     }
+    .call_time {
+      display: flex;
+      justify-content: flex-end;
+      font-size: 12px;
+      color: #7269ef;
+    }
     .remote_video_container {
       position: relative;
       width: 100%;
@@ -36,7 +42,8 @@ export const Container = styled.div`
         max-width: 75%;
         margin: auto;
         max-height: 600px;
-        top: 30px;
+        /* top: 30px; =>  Commented this out because, by adding call timer on top, the remote video comes on 
+        top of bottom buttons and buttons doesn't working */
         position: relative;
       }
     }
