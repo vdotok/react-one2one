@@ -268,7 +268,7 @@ function Main(props) {
     }
     let Client = new CVDOTOK.Client({
       projectId: PROJECT_ID,
-      host: `wss://r-stun2.vdotok.dev:8443/call`,
+      host: `${user.media_server_map.complete_address}`,
       //host: "wss://q-signalling.vdotok.dev:8443/call",
       stunServer: user.stun_server_map
         ? user.stun_server_map.complete_address
