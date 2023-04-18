@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo } from "react";
+import React, { useContext, useEffect, useMemo, useState } from "react";
 import Video from "assets/background_video.mp4";
 import CallFooter from "../call-footer";
 import { VdotokClientContext } from "context/vdotok-client";
@@ -39,6 +39,58 @@ function CallContent() {
     audioStream,
     receivedRes,
   });
+  const [sec, setSec] = useState(0);
+  const [min, setMin] = useState(0);
+  //////////////////////////////////
+  const [isActive, setIsActive] = useState(false);
+  const [seconds, setSeconds] = useState(0);
+  const [minutes, setMinutes] = useState(0);
+  const [hours, setHours] = useState(0);
+  const [callTime, setCallTime] = useState(1 * 60 * 60 +100);
+
+  useEffect(() => {
+    if (isActive) {
+      const interval = setInterval(() => {
+        setCallTime((prev) => prev + 1);
+      }, 1000);
+      return () => {
+        clearInterval(interval);
+        // setIsActive(false);
+      };
+    }
+  }, [isActive]);
+
+  const formatTime = (seconds) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds - hours * 3600) / 60);
+    const remainingSeconds = seconds - hours * 3600 - minutes * 60;
+
+    if (hours) {
+      return `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+    }
+
+    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
+      .toString()
+      .padStart(2, "0")}`;
+  };
+
+  // useEffect(() => {
+  //   if (isActive) {
+  //     console.log("My useeffect called");
+  //     const interval = setInterval(() => {
+  //       setSeconds((prevSec) => prevSec + 1);
+
+  //       if (seconds === 59) {
+  //         setSeconds(0);
+  //         setMinutes(minutes + 1);
+  //       }
+  //     }, 1000);
+
+  //     return () => clearInterval(interval);
+  //   }
+  // }, [isActive, setSeconds]);
 
   // const acceptCallHandler = () => {
   //   vdotokClient.AcceptCall(
@@ -57,7 +109,7 @@ function CallContent() {
       audio: true,
     });
   };
-console.log("**** ",{selectedUser, getUser})
+  console.log("**** ", { selectedUser, getUser });
   const callHandler = () => {
     const params = {
       localVideo: document.getElementById("localVideo"),
@@ -73,7 +125,7 @@ console.log("**** ",{selectedUser, getUser})
     if (reconnectCall) {
       params.ref_id = user.ref_id;
       params.re_invite = 1;
-      params.sessionUuid = uuid
+      params.sessionUuid = uuid;
     }
     console.log("## call params", { video });
     vdotokClient
@@ -83,14 +135,24 @@ console.log("**** ",{selectedUser, getUser})
         callDispatch({ type: "SET_UUID", payload: res });
       })
       .catch((err) => {
-          console.log("## VideoCall Err", err);
-          alert(err.error ? err.error.message : err.message.message ? err.message.message : err.message);
-          callDispatch({ type: "RESET_CALL_STATE" });
+        console.log("## VideoCall Err", err);
+        alert(
+          err.error
+            ? err.error.message
+            : err.message.message
+            ? err.message.message
+            : err.message
+        );
+        callDispatch({ type: "RESET_CALL_STATE" });
       });
   };
 
   useEffect(() => {
-    console.log("## call res receivedRes", { receivedRes, video, reconnectCall });
+    console.log("## call res receivedRes", {
+      receivedRes,
+      video,
+      reconnectCall,
+    });
     let call = setTimeout(() => {
       if (receivedRes.type === "CALL_RECEIVED" && !reconnectCall) {
         return acceptCallHandler();
@@ -114,6 +176,36 @@ console.log("**** ",{selectedUser, getUser})
     }
   }, [audioStream]);
 
+  const showRemoteVideoStreamIcon = useMemo(() => {
+    console.log("showRemoteVideoStreamIcon\n\n", videoStream);
+    if (videoStream === true || videoStream === false) {
+      setIsActive(true);
+    }
+
+    if (videoStream === false) {
+      return (
+        <>
+          <div className="call_time">
+            <h1>{formatTime(callTime)}</h1>
+          </div>
+
+          <div className="no_video_container">
+            <div className="img_container">
+              <ImageStatus
+                src={selectedUser.profile_pic}
+                name={selectedUser.full_name}
+                showStatus={false}
+                alt="user profile"
+                className="img"
+              />
+            </div>
+          </div>
+        </>
+      );
+    }
+    clearInterval(0);
+  }, [videoStream, callTime]);
+
   const showLocalAudioStreamIcon = useMemo(() => {
     if (!audio) {
       return (
@@ -123,25 +215,6 @@ console.log("**** ",{selectedUser, getUser})
       );
     }
   }, [audio]);
-
-  const showRemoteVideoStreamIcon = useMemo(() => {
-    if (videoStream === false) {
-      return (
-        <div className="no_video_container">
-          <div className="img_container">
-            <ImageStatus
-              src={selectedUser.profile_pic}
-              name={selectedUser.full_name}
-              showStatus={false}
-              alt="user profile"
-              className="img"
-            />
-          </div>
-        </div>
-      );
-    }
-  }, [videoStream]);
-
   const showLocalVideoStreamIcon = useMemo(() => {
     if (!camera) {
       return (
@@ -188,22 +261,50 @@ console.log("**** ",{selectedUser, getUser})
     >
       <div className="inner_container">
         <div className="remote_video_container">
+          {/* <h1>{formatTime(callTime)}</h1> */}
           {showRemoteAudioStreamIcon}
-            {callType === "video" ?
-                <video id="remoteVideo" className="video remote_video" autoPlay playsInline={true}>
-                    <source type="video/mp4" />
-                </video>
-                :
-                <audio id="remoteVideo" className="video remote_video" autoPlay playsInline={true}>
-                    <source type="audio/opus" />
-                </audio>
-            }
+          {callType === "video" ? (
+            <>
+              {isActive === true ? (
+                <div className="call_time">
+                  <h1>{formatTime(callTime)}</h1>
+                </div>
+              ) : (
+                ""
+              )}
+              <video
+                id="remoteVideo"
+                className="video remote_video"
+                autoPlay
+                playsInline={true}
+              >
+                <source type="video/mp4" />
+              </video>
+            </>
+          ) : (
+            <audio
+              id="remoteVideo"
+              className="video remote_video"
+              autoPlay
+              playsInline={true}
+            >
+              <source type="audio/opus" />
+            </audio>
+          )}
           {showRemoteVideoStreamIcon}
+
           <p className="username_text">{selectedUser.full_name}</p>
         </div>
+
         <div className="local_video_container">
           {showLocalAudioStreamIcon}
-          <video id="localVideo" muted className="video local_video" autoPlay playsInline={true}>
+          <video
+            id="localVideo"
+            muted
+            className="video local_video"
+            autoPlay
+            playsInline={true}
+          >
             <source type="video/mp4" />
           </video>
           {showLocalVideoStreamIcon}
