@@ -26,6 +26,9 @@ export const Container = styled.div`
       }
     }
     .call_time {
+      position: absolute;
+      right: 40px;
+      top: 5px;
       display: flex;
       justify-content: flex-end;
       font-size: 12px;

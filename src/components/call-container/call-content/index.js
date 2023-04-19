@@ -39,14 +39,8 @@ function CallContent() {
     audioStream,
     receivedRes,
   });
-  const [sec, setSec] = useState(0);
-  const [min, setMin] = useState(0);
-  //////////////////////////////////
   const [isActive, setIsActive] = useState(false);
-  const [seconds, setSeconds] = useState(0);
-  const [minutes, setMinutes] = useState(0);
-  const [hours, setHours] = useState(0);
-  const [callTime, setCallTime] = useState(1 * 60 * 60 +100);
+  const [callTime, setCallTime] = useState(0);
 
   useEffect(() => {
     if (isActive) {
@@ -76,22 +70,6 @@ function CallContent() {
       .padStart(2, "0")}`;
   };
 
-  // useEffect(() => {
-  //   if (isActive) {
-  //     console.log("My useeffect called");
-  //     const interval = setInterval(() => {
-  //       setSeconds((prevSec) => prevSec + 1);
-
-  //       if (seconds === 59) {
-  //         setSeconds(0);
-  //         setMinutes(minutes + 1);
-  //       }
-  //     }, 1000);
-
-  //     return () => clearInterval(interval);
-  //   }
-  // }, [isActive, setSeconds]);
-
   // const acceptCallHandler = () => {
   //   vdotokClient.AcceptCall(
   //     document.getElementById("localVideo"),
@@ -119,7 +97,7 @@ function CallContent() {
       videoType: video ? "camera" : "audio",
       to: [selectedUser.ref_id],
       timeout: 40,
-      isPeer: 1
+      isPeer: 1,
     };
 
     if (reconnectCall) {
@@ -185,9 +163,9 @@ function CallContent() {
     if (videoStream === false) {
       return (
         <>
-          <div className="call_time">
+          {/* <div className="call_time">
             <h1>{formatTime(callTime)}</h1>
-          </div>
+          </div> */}
 
           <div className="no_video_container">
             <div className="img_container">
@@ -263,15 +241,15 @@ function CallContent() {
         <div className="remote_video_container">
           {/* <h1>{formatTime(callTime)}</h1> */}
           {showRemoteAudioStreamIcon}
+          {isActive === true ? (
+            <div className="call_time">
+              <h1>{formatTime(callTime)}</h1>
+            </div>
+          ) : (
+            ""
+          )}
           {callType === "video" ? (
             <>
-              {isActive === true ? (
-                <div className="call_time">
-                  <h1>{formatTime(callTime)}</h1>
-                </div>
-              ) : (
-                ""
-              )}
               <video
                 id="remoteVideo"
                 className="video remote_video"
@@ -295,6 +273,9 @@ function CallContent() {
 
           <p className="username_text">{selectedUser.full_name}</p>
         </div>
+
+
+
 
         <div className="local_video_container">
           {showLocalAudioStreamIcon}
