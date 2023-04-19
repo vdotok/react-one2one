@@ -278,6 +278,7 @@ class Client extends events_1.EventEmitter {
         this.mediaServer = mediaServer;
         this.cleanIntervals();
         this.ws.onmessage = (message) => {
+            var _a;
             var messageData = JSON.parse(message.data);
             console.log('Received message: ', messageData);
             switch (messageData.requestType) {
@@ -378,7 +379,7 @@ class Client extends events_1.EventEmitter {
                         this.AddCandidate(messageData);
                     }
                     else {
-                        if (participant && participant.peerConnection && participant.peerConnection.peerConnection.currentRemoteDescription) {
+                        if ((_a = participant === null || participant === void 0 ? void 0 : participant.peerConnection) === null || _a === void 0 ? void 0 : _a.peerConnection.currentRemoteDescription) {
                             this.AddCandidate(messageData);
                         }
                         else {
@@ -388,7 +389,8 @@ class Client extends events_1.EventEmitter {
                             participant.receivedRemoteCandidates.push(messageData);
                             if (!participant.isRemoteSDPAvailable) {
                                 participant.isRemoteSDPAvailable = setInterval(() => {
-                                    if (participant && participant.peerConnection.peerConnection.currentRemoteDescription) {
+                                    var _a, _b;
+                                    if ((_b = (_a = participant === null || participant === void 0 ? void 0 : participant.peerConnection) === null || _a === void 0 ? void 0 : _a.peerConnection) === null || _b === void 0 ? void 0 : _b.currentRemoteDescription) {
                                         clearInterval(participant.isRemoteSDPAvailable);
                                         participant.isRemoteSDPAvailable = null;
                                         console.log("Processing stored ice candidates!");
@@ -599,7 +601,7 @@ class Client extends events_1.EventEmitter {
     autoReconnectCall(uUID, params = null, refId = null) {
         var _a, _b;
         let webRTCPeer = this.getPeerById(uUID, refId);
-        if (webRTCPeer && webRTCPeer.peerConnection && webRTCPeer.peerConnection.connectionState === "connected") {
+        if ((webRTCPeer === null || webRTCPeer === void 0 ? void 0 : webRTCPeer.peerConnection) && webRTCPeer.peerConnection.connectionState === "connected") {
             return { message: "RTC Peer got auto connected no need for manual reconnect!", status: true };
         }
         params = params || (this.sessionInfo[uUID] && this.sessionInfo[uUID].currentCallParams ? this.sessionInfo[uUID].currentCallParams : null);
@@ -732,12 +734,13 @@ class Client extends events_1.EventEmitter {
                 this.localVideos[params.uUID] = options.localVideo;
             }
             let WebRTCPeer = WebRtcPeerHelper_1.WebRtcPeerHelper.WebRtcPeerSendrecv(options, (error) => {
+                var _a;
                 if (error) {
                     rejects(error);
                     this.onErrorHandler();
                     return console.error(error);
                 }
-                if (!Object.keys(this.sessionInfo[params.uUID]["participants"]).length) {
+                if (!((_a = this.sessionInfo[params.uUID]) === null || _a === void 0 ? void 0 : _a.participants)) {
                     this.sessionInfo[params.uUID]["participants"] = {};
                 }
                 if (params.callType === "many_to_many" && params.isPeer) {
@@ -1527,7 +1530,7 @@ class Client extends events_1.EventEmitter {
         ///////////////////////////////////////////
         callRequest.SendCallRequest(this.ws);
         let webRTCPeer = this.getPeerById(uUID);
-        if (webRTCPeer && webRTCPeer.peerConnection) {
+        if (webRTCPeer === null || webRTCPeer === void 0 ? void 0 : webRTCPeer.peerConnection) {
             //@ts-ignore
             webRTCPeer.peerConnection.addEventListener("iceconnectionstatechange", this.onIceError.bind(this, uUID, this.currentUser), false);
         }
@@ -1539,7 +1542,7 @@ class Client extends events_1.EventEmitter {
     onIceError(uUID, ev, refID) {
         let webRTCPeer = this.getPeerById(uUID, refID);
         let states = ['closed', 'failed', 'disconnected'];
-        if (webRTCPeer && webRTCPeer.peerConnection && webRTCPeer.peerConnection.iceConnectionState && states.includes(webRTCPeer.peerConnection.iceConnectionState)) { //it will come for all ice
+        if ((webRTCPeer === null || webRTCPeer === void 0 ? void 0 : webRTCPeer.peerConnection) && webRTCPeer.peerConnection.iceConnectionState && states.includes(webRTCPeer.peerConnection.iceConnectionState)) { //it will come for all ice
             if (this.reInviteTimeout[uUID]) {
                 clearTimeout(this.reInviteTimeout[uUID]);
             }
@@ -1659,7 +1662,7 @@ class Client extends events_1.EventEmitter {
                         if (status) {
                             this.sendDisposePacket(uUID);
                         }
-                        if (webRTCPeer && webRTCPeer.peerConnection) {
+                        if (webRTCPeer === null || webRTCPeer === void 0 ? void 0 : webRTCPeer.peerConnection) {
                             webRTCPeer.peerConnection.removeEventListener("iceconnectionstatechange", this.onIceError, false);
                         }
                         if (this.sessionInfo[uUID].callTimeoutInterval) {
@@ -1898,7 +1901,7 @@ class Client extends events_1.EventEmitter {
      */
     async SetCameraOn(uUID, facingMode = 'user', extraData = null) {
         let webRTCPeer = this.getPeerById(uUID);
-        if (!webRTCPeer || !webRTCPeer.peerConnection) {
+        if (!(webRTCPeer === null || webRTCPeer === void 0 ? void 0 : webRTCPeer.peerConnection)) {
             return { status: false, message: "Peer Connection not found!", tryNewCall: true };
         }
         let session = (this.isManyToMany) ? this.callSession : this.UUIDSessions[this.currentFromUser];
@@ -2162,15 +2165,15 @@ class Client extends events_1.EventEmitter {
         this.sessionInfo = [];
     }
     getPeerById(uUID, refId = null) {
-        var _a, _b, _c, _d, _e, _f;
+        var _a, _b, _c, _d, _e, _f, _g;
         if (!refId || this.sessionInfo[uUID].callType != "many_to_many") {
             refId = this.currentUser;
         }
         let webRTCPeer = (_c = (_b = (_a = this.sessionInfo[uUID]) === null || _a === void 0 ? void 0 : _a.participants) === null || _b === void 0 ? void 0 : _b[refId]) === null || _c === void 0 ? void 0 : _c.peerConnection;
-        if (!webRTCPeer) { //if there is only one peer and not found above then we are auto piking it.
-            let all = Object.keys((_d = this.sessionInfo[uUID]) === null || _d === void 0 ? void 0 : _d.participants);
+        if (!webRTCPeer && ((_d = this.sessionInfo[uUID]) === null || _d === void 0 ? void 0 : _d.participants)) { //if there is only one peer and not found above then we are auto piking it.
+            let all = Object.keys((_e = this.sessionInfo[uUID]) === null || _e === void 0 ? void 0 : _e.participants);
             if (all.length == 1) {
-                webRTCPeer = (_f = (_e = this.sessionInfo[uUID]) === null || _e === void 0 ? void 0 : _e.participants) === null || _f === void 0 ? void 0 : _f[all[0]];
+                webRTCPeer = (_g = (_f = this.sessionInfo[uUID]) === null || _f === void 0 ? void 0 : _f.participants) === null || _g === void 0 ? void 0 : _g[all[0]];
             }
         }
         if (!webRTCPeer) {
@@ -27814,12 +27817,8 @@ class PeerM2M {
             });
         });
     }
-    getRTCPeerByID(uUID, ref_id) {
-        const participant = this.instance.sessionInfo[uUID]["participants"][ref_id];
-        return participant;
-    }
     AddCandidate(message) {
-        const participant = this.getRTCPeerByID(message.sessionUuid, message.from);
+        const participant = this.instance.getPeerById(message.sessionUuid, message.from);
         console.log("Add Ice Candidate::::", message, participant);
         if (participant) {
             participant.peerConnection.addIceCandidate(message.candidate, (error) => {
@@ -27835,7 +27834,7 @@ class PeerM2M {
     }
     CallResponse(message) {
         var _a, _b;
-        const participant = this.getRTCPeerByID(message.sessionUuid, (_a = message.from) !== null && _a !== void 0 ? _a : message.referenceId);
+        const participant = this.instance.getPeerById(message.sessionUuid, (_a = message.from) !== null && _a !== void 0 ? _a : message.referenceId);
         console.info("CallResponse", participant, message);
         if (message.response == "accepted" || (message.sdpType == "sdp_answer" && message.sdp)) {
             participant.peerConnection.processAnswer((_b = message.sdpAnswer) !== null && _b !== void 0 ? _b : message.sdp, (error) => {
