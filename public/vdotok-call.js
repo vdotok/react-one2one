@@ -990,9 +990,19 @@ class Client extends events_1.EventEmitter {
         }
     }
     async AcceptCall(params) {
+        if (!params.uUID) {
+            params.uUID = params.sessionUuid;
+        }
         params.callType = this.sessionInfo[params.uUID] && this.sessionInfo[params.uUID].callType ? this.sessionInfo[params.uUID].callType : "one_to_one";
         params.isInitiator = 0;
-        params.isPeer = params.hasOwnProperty('isPeer') ? params.isPeer : 1;
+        if (!params.hasOwnProperty('isPeer')) {
+            if (this.sessionInfo[params.uUID].hasOwnProperty('isPeer')) {
+                params.isPeer = this.sessionInfo[params.uUID].isPeer;
+            }
+            else {
+                params.isPeer = 1;
+            }
+        }
         return new Promise(async (resolve, rejects) => {
             var _a, _b, _c;
             this.localVideo = params.localVideo;
