@@ -651,7 +651,7 @@ class Client extends events_1.EventEmitter {
     PeerToPeerReInvite(messageData) {
         var _a, _b;
         let webRTCPeer = this.getPeerById(messageData.sessionUuid, (_a = messageData.from) !== null && _a !== void 0 ? _a : messageData.referenceId);
-        if (messageData.sdpType === "sdp_anwser") {
+        if (messageData.sdpType === "sdp_answer") {
             try {
                 if (webRTCPeer) {
                     if (messageData.sdp) {
