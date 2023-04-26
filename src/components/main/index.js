@@ -107,7 +107,9 @@ function Main(props) {
     });
     if(!findUser)
     {
-        alert("A new User calling you that not exist in the list.<br> Try reloading this page and call again");
+        alert("A new User calling you that not exist in the list.\n Try reloading this page and call again");
+        vdotokClient.EndCall();
+        window.location.reload();
         return;
     }
     callDispatch({ type: "SET_RECEIVED_CALL", payload: true });
