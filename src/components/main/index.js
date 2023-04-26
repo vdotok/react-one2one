@@ -107,8 +107,8 @@ function Main(props) {
     });
     if(!findUser)
     {
-        alert("A new User calling you that not exist in the list.\n Try reloading this page and call again");
-        vdotokClient.EndCall();
+        alert("A new User calling you that not exist in the list.\nTry reloading this page and call again");
+        vdotokClientRef.current.EndCall();
         window.location.reload();
         return;
     }
