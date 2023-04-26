@@ -105,6 +105,11 @@ function Main(props) {
       receiverRes,
       usersListRef: usersListRef.current,
     });
+    if(!findUser)
+    {
+        alert("A new User calling you that not exist in the list.<br> Try reloading this page and call again");
+        return;
+    }
     callDispatch({ type: "SET_RECEIVED_CALL", payload: true });
     callDispatch({ type: "GET_RECEIVED_RES", payload: receiverRes });
     userDispatch({ type: "GET_USER", payload: findUser });
