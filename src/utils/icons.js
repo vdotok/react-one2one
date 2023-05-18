@@ -26,6 +26,7 @@ import {
   RiQuestionAnswerLine,
   RiCheckLine,
 } from "react-icons/ri";
+import { MdPerson, MdPersonOff } from "react-icons/md";
 import { BiVideo, BiVideoOff } from "react-icons/bi";
 const Icons = {
   email: RiMailLine,
@@ -56,6 +57,8 @@ const Icons = {
   oncam: BiVideo,
   offcam: BiVideoOff,
   check: RiCheckLine,
+  onAvatar: MdPerson,
+  offAvatar: MdPersonOff,
 };
 
 export default Icons;

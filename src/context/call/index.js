@@ -1,4 +1,4 @@
-import React, {useState, createContext, useReducer, useRef} from "react";
+import React, { useState, createContext, useReducer, useRef } from "react";
 export const CallContext = createContext();
 
 const initialState = {
@@ -6,6 +6,8 @@ const initialState = {
   receivedCall: false,
   video: 0,
   audio: true,
+  avatarCall: false,
+  avatarStream: false,
   camera: true,
   videoStream: null,
   audioStream: null,
@@ -14,7 +16,7 @@ const initialState = {
   uuid: null,
   callMessage: "",
   reconnectCall: false,
-    isSocketDrop:false
+  isSocketDrop: false,
 };
 
 const reducer = (state, action) => {
@@ -57,13 +59,17 @@ const reducer = (state, action) => {
       };
     case "UPDATE_AUDIO":
       return { ...state, audio: action.payload };
+    case "UPDATE_AVATAR_CALL":
+      return { ...state, avatarCall: action.payload };
+    case "UPDATE_AVATAR_STREAM":
+      return { ...state, avatarStream: action.payload };
     case "UPDATE_CAMERA":
       return { ...state, camera: action.payload };
     case "UPDATE_CHAT":
       return { ...state, chat: action.payload };
     case "CALL_MESSAGE":
       return { ...state, callMessage: action.payload };
-      case "SOCKET_DROP":
+    case "SOCKET_DROP":
       return { ...state, isSocketDrop: action.payload };
     case "RECONEECT_CALL_DATA":
       return { ...state, ...action.payload };

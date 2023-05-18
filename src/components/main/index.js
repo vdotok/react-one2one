@@ -75,9 +75,19 @@ function Main(props) {
 
   console.log("$$", { usersList });
 
+  const avatarCallHandler = (avatarValue) => {
+    callDispatch({
+      type: "UPDATE_AVATAR_STREAM",
+      payload: avatarValue,
+    });
+  };
+
   const callStatusHandler = (callStatusRes) => {
     const audioStream = callStatusRes.audio_status === 1;
     const videoStream = callStatusRes.video_status === 1;
+    if (videoStream) {
+      avatarCallHandler(false);
+    }
     callDispatch({
       type: "SET_STREAMS",
       payload: { audioStream, videoStream },
@@ -105,12 +115,13 @@ function Main(props) {
       receiverRes,
       usersListRef: usersListRef.current,
     });
-    if(!findUser)
-    {
-        alert("A new User calling you that not exist in the list.\nTry reloading this page and call again");
-        vdotokClientRef.current.EndCall();
-        window.location.reload();
-        return;
+    if (!findUser) {
+      alert(
+        "A new User calling you that not exist in the list.\nTry reloading this page and call again"
+      );
+      vdotokClientRef.current.EndCall();
+      window.location.reload();
+      return;
     }
     callDispatch({ type: "SET_RECEIVED_CALL", payload: true });
     callDispatch({ type: "GET_RECEIVED_RES", payload: receiverRes });
@@ -180,6 +191,15 @@ function Main(props) {
     });
   };
 
+  const customRPCHandler = (customRPCRes) => {
+    switch (customRPCRes.data.type) {
+      case "AVATAR_CALL_START":
+        return avatarCallHandler(true);
+      case "AVATAR_CALL_END":
+        return avatarCallHandler(false);
+    }
+  };
+
   const onCallResponseHandler = (response) => {
     // //ABM
     // console.log("ABM");
@@ -197,7 +217,12 @@ function Main(props) {
         console.log("ABM === Call received ");
         return receiverHandler(response);
       }
-
+      case "Custom_RPC": {
+        console.log("## onCallResponseHandler res Custom_RPC", {
+          response,
+        });
+        return customRPCHandler(response);
+      }
       case "CALL_REJECTED":
         return rejectCallHandler(response);
 
@@ -295,6 +320,7 @@ function Main(props) {
     });
     Client.on("call", (res) => {
       console.log("## Call res", { res });
+      console.log("## onCallResponseHandler", { res });
       onCallResponseHandler(res);
     });
     vdotokClientRef.current = Client;

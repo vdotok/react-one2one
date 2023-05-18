@@ -50,6 +50,9 @@ export const Button = styled.button`
   .button_icon {
     color: #fff;
     font-size: 17px;
+    &.avatar_icon {
+      font-size: 20px;
+    }
     &.cam_icon {
       font-size: 20px;
     }
@@ -64,7 +67,7 @@ export const Button = styled.button`
 
 function CallFooter() {
   const {
-    state: { callType, audio, camera, chat, uuid },
+    state: { callType, audio, camera, chat, avatarCall, uuid },
     dispatch: callDispatch,
   } = useContext(CallContext);
   const { vdotokClient } = useContext(VdotokClientContext);
@@ -98,6 +101,10 @@ function CallFooter() {
           type: "UPDATE_CAMERA",
           payload: true,
         });
+        callDispatch({
+          type: "UPDATE_AVATAR_CALL",
+          payload: false,
+        });
       })
       .catch((cameraErr) => console.log("## cameraOn err", { cameraErr }));
   };
@@ -121,6 +128,34 @@ function CallFooter() {
       .catch((audioErr) => console.log("## audioOn err", { audioErr }));
   };
 
+  const avatarHandler = () => {
+    if (avatarCall) {
+      const sendObj = {
+        type: "AVATAR_CALL_END",
+      };
+      vdotokClient.sendCustomRPC(sendObj, uuid);
+      return callDispatch({
+        type: "UPDATE_AVATAR_CALL",
+        payload: false,
+      });
+    }
+    const sendObj = {
+      type: "AVATAR_CALL_START",
+    };
+    vdotokClient.sendCustomRPC(sendObj, uuid);
+    if (camera) {
+      vdotokClient.SetCameraOff(uuid);
+      callDispatch({
+        type: "UPDATE_CAMERA",
+        payload: false,
+      });
+    }
+    return callDispatch({
+      type: "UPDATE_AVATAR_CALL",
+      payload: true,
+    });
+  };
+
   return (
     <Container>
       <MoreOptionContainer>
@@ -130,14 +165,23 @@ function CallFooter() {
             className="button_icon audio_icon"
           />
         </Button>
-        {callType === "video" ?
+
+        {callType === "video" ? (
+          <>
+            <Button onClick={() => avatarHandler()} active={avatarCall}>
+              <GetIcon
+                iconName={avatarCall ? "onAvatar" : "offAvatar"}
+                className="button_icon avatar_icon"
+              />
+            </Button>
             <Button onClick={() => cameraHandler()} active={camera}>
               <GetIcon
                 iconName={camera ? "oncam" : "offcam"}
                 className="button_icon cam_icon"
               />
             </Button>
-        : ''}
+          </>
+        ) : null}
         <Button className="phone_button" onClick={endCall}>
           <GetIcon iconName="phone" className="button_icon phone_icon" />
         </Button>

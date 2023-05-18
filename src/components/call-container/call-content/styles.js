@@ -25,15 +25,7 @@ export const Container = styled.div`
         /* background-color: gold; */
       }
     }
-    .call_time {
-      position: absolute;
-      right: 40px;
-      top: 5px;
-      display: flex;
-      justify-content: flex-end;
-      font-size: 12px;
-      color: #7269ef;
-    }
+
     .remote_video_container {
       position: relative;
       width: 100%;
@@ -58,7 +50,10 @@ export const Container = styled.div`
       /* background-color: pink; */
       /* border-radius: 10px; */
     }
-    .icon_container {
+    .local_icon_container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       position: absolute;
       top: 10px;
       right: 10px;
@@ -71,6 +66,37 @@ export const Container = styled.div`
         vertical-align: middle;
         font-size: 16px;
         color: #7269ef;
+      }
+    }
+    .call_time_container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1;
+      .icon_container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 26px;
+        width: 26px;
+        border-radius: 100%;
+        background-color: ${({ theme }) => theme.image_bg};
+        text-align: center;
+        .mic_off_icon {
+          vertical-align: middle;
+          font-size: 16px;
+          color: #7269ef;
+        }
+      }
+      .call_time {
+        display: flex;
+        justify-content: flex-end;
+        font-size: 12px;
+        color: #7269ef;
+        margin-right: 10px;
       }
     }
     .no_video_container {
@@ -168,4 +194,14 @@ export const Container = styled.div`
       display: ${(props) => (props.callMessage ? "none" : "block")};
     }
   }
+`;
+
+export const AvatarContainer = styled.div`
+  display: ${(props) => (props.display ? "block" : "none")};
+  position: absolute;
+  top: 40px;
+  left: 0;
+  height: calc(100% - 74px);
+
+  /* background-color: pink; */
 `;

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import Video from "assets/background_video.mp4";
 import CallFooter from "../call-footer";
 import { VdotokClientContext } from "context/vdotok-client";
@@ -7,9 +7,11 @@ import { CallContext } from "context/call";
 import GetIcon from "utils/getIcon";
 import ImageStatus from "components/image-status";
 import { useLocalStorage } from "hooks/useLocalStorage";
-import { Container } from "./styles";
+import AvatarModal from "components/avatar";
+import { Container, AvatarContainer } from "./styles";
 
 function CallContent() {
+  const videoRef = useRef(null);
   const {
     state: { selectedUser, getUser },
     dispatch: userDispatch,
@@ -25,6 +27,7 @@ function CallContent() {
       audioStream,
       callMessage,
       reconnectCall,
+      avatarStream,
       callType,
     },
     dispatch: callDispatch,
@@ -187,12 +190,13 @@ function CallContent() {
   const showLocalAudioStreamIcon = useMemo(() => {
     if (!audio) {
       return (
-        <div className="icon_container">
+        <div className="local_icon_container">
           <GetIcon iconName="offmic" className="mic_off_icon" />
         </div>
       );
     }
   }, [audio]);
+
   const showLocalVideoStreamIcon = useMemo(() => {
     if (!camera) {
       return (
@@ -240,21 +244,33 @@ function CallContent() {
       <div className="inner_container">
         <div className="remote_video_container">
           {/* <h1>{formatTime(callTime)}</h1> */}
-          {showRemoteAudioStreamIcon}
-          {isActive === true ? (
+          <div className="call_time_container">
             <div className="call_time">
-              <h1>{formatTime(callTime)}</h1>
+              <h1>hhh</h1>
             </div>
-          ) : (
-            ""
-          )}
+            {isActive === true ? (
+              <div className="call_time">
+                <h1>{formatTime(callTime)}</h1>
+              </div>
+            ) : null}
+            {showRemoteAudioStreamIcon}
+          </div>
+          {/* <AvatarContainer display={true}>
+            <AvatarModal />
+          </AvatarContainer> */}
           {callType === "video" ? (
             <>
+              {avatarStream ? (
+                <AvatarContainer display={avatarStream}>
+                  <AvatarModal audioStream={audioStream} />
+                </AvatarContainer>
+              ) : null}
               <video
                 id="remoteVideo"
                 className="video remote_video"
                 autoPlay
                 playsInline={true}
+                ref={videoRef}
               >
                 <source type="video/mp4" />
               </video>
@@ -269,13 +285,9 @@ function CallContent() {
               <source type="audio/opus" />
             </audio>
           )}
-          {showRemoteVideoStreamIcon}
-
+          {avatarStream ? null : showRemoteVideoStreamIcon}
           <p className="username_text">{selectedUser.full_name}</p>
         </div>
-
-
-
 
         <div className="local_video_container">
           {showLocalAudioStreamIcon}
