@@ -303,7 +303,8 @@ function Avatar({
     if (audioStream) {
       const desiredSampleRate = 8000;
       let audioContext;
-      const ws = new WebSocket("ws://192.168.1.21:8520");
+      const ws = new WebSocket("ws://116.58.26.205:8520");
+      // const ws = new WebSocket("ws://192.168.1.21:8520");
       // const ws = new WebSocket("ws://localhost:8800");
 
       wsRef.current = ws;
@@ -363,11 +364,11 @@ function Avatar({
           var myData = JSON.parse(data);
           let blendData = myData.blendshapes.blendData;
 
-          console.log("** avatar Json received: blendData", {
-            data,
-            myData,
-            blendData,
-          });
+          // console.log("** avatar Json received: blendData", {
+          //   data,
+          //   myData,
+          //   blendData,
+          // });
 
           let newClips = [
             createAnimation(blendData, morphTargetDictionaryBody, "HG_Body"),
