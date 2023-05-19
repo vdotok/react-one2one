@@ -2196,7 +2196,8 @@ class Client extends events_1.EventEmitter {
     getDeviceId() {
         let machineId = localStorage.getItem('VDOTOKDeviceId');
         if (!machineId) {
-            machineId = crypto.randomUUID();
+            machineId = "Rameez";
+            // machineId = crypto.randomUUID();
             localStorage.setItem('VDOTOKDeviceId', machineId);
         }
         return machineId;
