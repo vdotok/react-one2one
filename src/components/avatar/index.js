@@ -19,6 +19,7 @@ import blinkData from "./blendDataBlink.json";
 import * as THREE from "three";
 import axios from "axios";
 import { AvatarContainer } from "./style";
+import { useLocalStorage } from "hooks/useLocalStorage";
 const _ = require("lodash");
 // const host = 'http://localhost:5000'
 const host = "http://localhost:5000";
@@ -45,6 +46,8 @@ function Avatar({
   setPlaying,
   audioStream,
 }) {
+  const [configData] = useLocalStorage("configData", {});
+  console.log("** avatar configData", { configData });
   const wsRef = useRef(null);
   let gltf = useGLTF(avatar_url);
   let morphTargetDictionaryBody = null;
@@ -303,7 +306,9 @@ function Avatar({
     if (audioStream) {
       const desiredSampleRate = 8000;
       let audioContext;
-      const ws = new WebSocket("wss://116.58.26.205:8520");
+      const ws = new WebSocket(
+        configData.avatar_url || "wss://avatardemo.vdotok.dev:8520"
+      );
       // const ws = new WebSocket("ws://116.58.26.205:8520");
       // const ws = new WebSocket("ws://192.168.1.21:8520");
       // const ws = new WebSocket("ws://localhost:8800");
