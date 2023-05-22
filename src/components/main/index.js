@@ -1,5 +1,6 @@
 /* eslint-disable */
 import React, { useContext, useEffect, useMemo, useState, useRef } from "react";
+// import axios from "axios";
 import styled from "styled-components";
 import { VdotokClientContext } from "context/vdotok-client";
 import SideMenu from "components/side-menu";
@@ -60,6 +61,7 @@ function Main(props) {
     callTypeRef,
   } = useContext(CallContext);
   const [user] = useLocalStorage("user", {});
+  // const [configData, setConfigData] = useLocalStorage("configData", {});
   const [presistCallData, setPresistCallData] = useLocalStorage(
     "presistCallData",
     {}
@@ -72,6 +74,22 @@ function Main(props) {
       userDispatch({ type: "SELECT_USER", payload: currentUser });
     }
   }, [currentUser.ref_id]);
+
+  // const getDataFromConfig = () => {
+  //   axios
+  //     .get("config.json")
+  //     .then((res) => {
+  //       setConfigData(res.data);
+  //       console.log("** config Res", { res });
+  //     })
+  //     .catch((err) => {
+  //       console.log("** config Error", { err });
+  //     });
+  // };
+
+  // useEffect(() => {
+  //   getDataFromConfig();
+  // }, []);
 
   console.log("$$", { usersList });
 
