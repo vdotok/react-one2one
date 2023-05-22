@@ -4,18 +4,19 @@ import GetIcon from "utils/getIcon";
 import { useLocalStorage } from "hooks/useLocalStorage";
 import { DarkModeContext } from "context/dark-mode";
 import {
-    Container,
-    Logo,
-    ListContainer,
-    UnorderListContainer,
-    Chunk,
-    Footer,
-    ThemeButton,
-    LogoutMenuContainer,
-    Image,
-    LogoContainer,
-    LogoutPopup, SocketState,
-    // Divider,
+  Container,
+  Logo,
+  ListContainer,
+  UnorderListContainer,
+  Chunk,
+  Footer,
+  ThemeButton,
+  LogoutMenuContainer,
+  Image,
+  LogoContainer,
+  LogoutPopup,
+  SocketState,
+  // Divider,
 } from "./styles";
 import logo from "assets/images/logo.png";
 import avatar from "assets/images/avatar.jpg";
@@ -42,7 +43,9 @@ function SideMenu() {
   const navigate = useNavigate();
   const { darkMode, setDarkMode } = useContext(DarkModeContext);
   const { vdotokClient, setVdotokClient } = useContext(VdotokClientContext);
-  const { state: { isSocketDrop} } = useContext(CallContext);
+  const {
+    state: { isSocketDrop },
+  } = useContext(CallContext);
   console.log({ vdotokClient });
   const [user, setUser] = useLocalStorage("user", {});
   const [openMenu, setOpenMenu] = useState(false);
@@ -81,18 +84,18 @@ function SideMenu() {
   }, []);
 
   useEffect(() => {
-      console.log("state change" , vdotokClient.socketState);
-      if (vdotokClient && vdotokClient.socketState === "registered") {
-          setSocketColor("green");
-      } else if (vdotokClient && vdotokClient.socketState === "connecting") {
-          setSocketColor("yellow");
-      } else {
-          setSocketColor("red");
-      }
-  }, [isSocketDrop, vdotokClient.socketState])
-console.log("**",{socketState:vdotokClient.socketState})
+    // console.log("state change", vdotokClient.socketState);
+    if (vdotokClient && vdotokClient.socketState === "registered") {
+      setSocketColor("green");
+    } else if (vdotokClient && vdotokClient.socketState === "connecting") {
+      setSocketColor("yellow");
+    } else {
+      setSocketColor("red");
+    }
+  }, [isSocketDrop, vdotokClient.socketState]);
+  // console.log("**",{socketState:vdotokClient.socketState})
   const logoutHandler = () => {
-    console.log({ vdotokClient });
+    // console.log({ vdotokClient });
     vdotokClient.Disconnect();
     setVdotokClient(null);
     setUser({});
@@ -134,7 +137,7 @@ console.log("**",{socketState:vdotokClient.socketState})
         <ThemeButton onClick={themeHandler}>{GetThemeIcon}</ThemeButton>
         <LogoutMenuContainer active={openMenu}>
           <LogoContainer onClick={() => setOpenMenu(!openMenu)}>
-              <SocketState style={{background : socketColor}}/>
+            <SocketState style={{ background: socketColor }} />
             <Image id={"profile"} src={avatar} alt="profile" />
           </LogoContainer>
           {openMenu ? (

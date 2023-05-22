@@ -34,14 +34,14 @@ function CallContent() {
   } = useContext(CallContext);
   const { vdotokClient } = useContext(VdotokClientContext);
   const [user] = useLocalStorage("user", {});
-  console.log("## cal res CallContent", {
-    uuid,
-    videoStream,
-    video,
-    audio,
-    audioStream,
-    receivedRes,
-  });
+  // console.log("## cal res CallContent", {
+  //   uuid,
+  //   videoStream,
+  //   video,
+  //   audio,
+  //   audioStream,
+  //   receivedRes,
+  // });
   const [isActive, setIsActive] = useState(false);
   const [callTime, setCallTime] = useState(0);
 
@@ -90,7 +90,7 @@ function CallContent() {
       audio: true,
     });
   };
-  console.log("**** ", { selectedUser, getUser });
+  // console.log("**** ", { selectedUser, getUser });
   const callHandler = () => {
     const params = {
       localVideo: document.getElementById("localVideo"),
@@ -158,7 +158,7 @@ function CallContent() {
   }, [audioStream]);
 
   const showRemoteVideoStreamIcon = useMemo(() => {
-    console.log("showRemoteVideoStreamIcon\n\n", videoStream);
+    // console.log("showRemoteVideoStreamIcon\n\n", videoStream);
     if (videoStream === true || videoStream === false) {
       setIsActive(true);
     }

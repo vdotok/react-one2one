@@ -91,7 +91,7 @@ function Main(props) {
     getDataFromConfig();
   }, []);
 
-  console.log("$$", { usersList, configData });
+  // console.log("$$", { usersList, configData });
 
   const avatarCallHandler = (avatarValue) => {
     callDispatch({
@@ -112,7 +112,7 @@ function Main(props) {
     });
   };
 
-  console.log("*** outside ", { callType });
+  // console.log("*** outside ", { callType });
   const receiverHandler = (receiverRes) => {
     console.log("*** ", { callType: callTypeRef.current, receiverRes });
     if (callTypeRef.current) {
@@ -212,9 +212,13 @@ function Main(props) {
   const customRPCHandler = (customRPCRes) => {
     switch (customRPCRes.data.type) {
       case "AVATAR_CALL_START":
-        return avatarCallHandler(true);
+        if (customRPCRes.data !== 400) {
+          return avatarCallHandler(true);
+        }
       case "AVATAR_CALL_END":
-        return avatarCallHandler(false);
+        if (customRPCRes.data !== 400) {
+          return avatarCallHandler(false);
+        }
     }
   };
 
@@ -312,7 +316,7 @@ function Main(props) {
   const initializeSDK = () => {
     if (window.parent) {
       window.addEventListener("message", (event) => {
-        console.log("Inside React", event);
+        // console.log("Inside React", event);
       });
       window.parent.postMessage("GetDOM", "*");
     }

@@ -19,7 +19,7 @@ function ChatSidePanel() {
     usersListRef,
   } = useContext(UserContext);
 
-  console.log("## useData response", { loading, usersList, error });
+  // console.log("## useData response", { loading, usersList, error });
   useEffect(() => {
     const cancelToken = axios.CancelToken.source();
 
@@ -61,7 +61,7 @@ function ChatSidePanel() {
     setValue(value);
   };
 
-  console.log("% value", { value });
+  // console.log("% value", { value });
 
   const renderUI = useMemo(() => {
     console.log("renderUI", { usersList });

@@ -47,7 +47,7 @@ function Avatar({
   audioStream,
 }) {
   const [configData] = useLocalStorage("configData", {});
-  console.log("** avatar configData", { configData });
+  // console.log("** avatar configData", { configData });
   const wsRef = useRef(null);
   let gltf = useGLTF(avatar_url);
   let morphTargetDictionaryBody = null;

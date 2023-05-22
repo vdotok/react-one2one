@@ -83,7 +83,7 @@ function CallFooter() {
     callDispatch({ type: "RESET_CALL_STATE" });
   };
 
-  console.log("## call footer", { callType });
+  // console.log("## call footer", { callType });
 
   const cameraHandler = () => {
     if (camera) {
