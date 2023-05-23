@@ -327,6 +327,7 @@ function Main(props) {
       stunServer: user.stun_server_map
         ? user.stun_server_map.complete_address
         : "",
+      ignorePublicIP: true,
     });
     Client.on("connected", (res) => {
       console.log("** vdotok SDK connected", { res });
