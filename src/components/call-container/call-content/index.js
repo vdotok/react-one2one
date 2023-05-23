@@ -184,8 +184,8 @@ function CallContent() {
         </>
       );
     }
-    clearInterval(0);
-  }, [videoStream, callTime]);
+  }, [videoStream]);
+  // }, [videoStream, callTime]);
 
   const showLocalAudioStreamIcon = useMemo(() => {
     if (!audio) {
@@ -245,9 +245,6 @@ function CallContent() {
         <div className="remote_video_container">
           {/* <h1>{formatTime(callTime)}</h1> */}
           <div className="call_time_container">
-            <div className="call_time">
-              <h1>hhh</h1>
-            </div>
             {isActive === true ? (
               <div className="call_time">
                 <h1>{formatTime(callTime)}</h1>
@@ -255,16 +252,19 @@ function CallContent() {
             ) : null}
             {showRemoteAudioStreamIcon}
           </div>
-          {/* <AvatarContainer display={true}>
-            <AvatarModal />
-          </AvatarContainer> */}
+          <AvatarContainer display={avatarStream}>
+            <AvatarModal
+              audioStream={audioStream}
+              avatarStream={avatarStream}
+            />
+          </AvatarContainer>
           {callType === "video" ? (
             <>
-              {avatarStream ? (
+              {/* {avatarStream ? (
                 <AvatarContainer display={avatarStream}>
                   <AvatarModal audioStream={audioStream} />
                 </AvatarContainer>
-              ) : null}
+              ) : null} */}
               <video
                 id="remoteVideo"
                 className="video remote_video"

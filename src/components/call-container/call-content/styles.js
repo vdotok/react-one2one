@@ -197,7 +197,7 @@ export const Container = styled.div`
 `;
 
 export const AvatarContainer = styled.div`
-  display: ${(props) => (props.display ? "block" : "none")};
+  opacity: ${(props) => (props.display ? 1 : 0)};
   position: absolute;
   top: 40px;
   left: 0;

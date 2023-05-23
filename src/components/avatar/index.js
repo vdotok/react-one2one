@@ -45,6 +45,7 @@ function Avatar({
   playing,
   setPlaying,
   audioStream,
+  avatarStream,
 }) {
   const [configData] = useLocalStorage("configData", {});
   // console.log("** avatar configData", { configData });
@@ -303,7 +304,11 @@ function Avatar({
   // websocket connected , hook
 
   useEffect(() => {
-    if (audioStream) {
+    console.log("** avatar useEffect audioStream", {
+      audioStream,
+      avatarStream,
+    });
+    if (audioStream && avatarStream) {
       const desiredSampleRate = 8000;
       let audioContext;
       const ws = new WebSocket(
@@ -342,9 +347,9 @@ function Avatar({
 
       ws.addEventListener("open", () => {
         console.log("** avatar Json we are connected!");
-        if (audioStream) {
-          initializeAudioContext();
-        }
+
+        initializeAudioContext();
+
         // ws.send(
         //   document
         //     .getElementById("remoteVideo")
@@ -423,7 +428,7 @@ function Avatar({
         }
       };
     }
-  }, [audioStream]);
+  }, [audioStream, avatarStream]);
 
   useEffect(() => {
     let idleClipAction = mixer.clipAction(idleClips[0]);
@@ -515,7 +520,7 @@ const STYLES = {
 };
 
 function AvatarModal(props) {
-  const { audioStream } = props;
+  const { audioStream, avatarStream } = props;
   // const audioPlayer = useRef();
 
   const [speak, setSpeak] = useState(false);
@@ -606,6 +611,7 @@ function AvatarModal(props) {
             playing={playing}
             setPlaying={setPlaying}
             audioStream={audioStream}
+            avatarStream={avatarStream}
           />
         </Suspense>
       </Canvas>
