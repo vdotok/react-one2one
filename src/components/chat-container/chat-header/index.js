@@ -43,9 +43,10 @@ function ChatHeader(props) {
       </UserInfo>
 
       <div style={{ display: "flex", alignItems: "center", margin: "5px" }}>
-        <h4 style={{color:"#e1e9f1"}}>Media Server Call</h4>
-        <SwitchButton onClick={toggler}  />
-
+        <h4 style={{color:"#e1e9f1"}}>Media Server</h4>
+        &nbsp;
+          <SwitchButton onClick={toggler}  />
+          &nbsp;
         {/* <Switch onClick={toggler} style={{ margin: "5px" }} /> */}
         <h4 style={{color:"#e1e9f1"}}>P2P Call</h4>
       </div>
