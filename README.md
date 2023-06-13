@@ -1,70 +1,120 @@
-# Getting Started with Create React App
+# Vdotok ReactJS One-to-One Audio/Video Call
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+This is a demo project to demonstrate “One-to-One audio and video call” using ReactJS.
 
-## Available Scripts
+## Live Demo
 
-In the project directory, you can run:
+Click <a href="https://d-react-one2one.vdotok.dev" title="Call Demo">here</a> to visit the live demo of VdoTok ReactJS One-to-One Audio/Video Call.
 
-### `npm start`
+## Prerequisites:
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+- Node v4.x.x or later
+- npm v3.x.x or later
+- git version any
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+To verify the version of Node and npm, open **Terminal/Console** window and run `node -v` and `npm –v`. Older versions produce errors.
 
-### `npm test`
+Click <a href="https://docs.npmjs.com/downloading-and-installing-node-js-and-npm" target="_blank">here</a> to download and install the latest versions of Node and npm.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Click <a href="https://git-scm.com/downloads" target="_blank">here</a> to download and install the latest versions of git .
 
-### `npm run build`
+We recommend <a href="https://github.com/nvm-sh/nvm"> nvm </a> for managing multiple versions of node and npm.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+<br/>
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
 
-### `npm run eject`
+## Clone Repo
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+- Clone this **Repository URL** into new project folder (e.g., my-proj).
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```shell
+    git clone https://github.com/vdotok/react-one2one
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+- Move from you current directory i-e, **my-proj** to the **react-one2one** directory.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```shell
+    cd react-one2one
+```
 
-## Learn More
+</br>
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+## Sign up to get credentials i.e Project ID, and API URL.
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+Register at <a href="https://vdotok.com">VdoTok</a> to get **API URL** and **Project ID**.
 
-### Code Splitting
+1. Click on this link -> <a href="https://vdotok.com">https://vdotok.com</a> in your browser.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+<img width="1721" alt="SignupOnVdotok" src="https://github.com/vdotok/react-one2one/assets/134290022/5c6fc74f-7c32-4e2a-b6cf-ca5be6cb1a12">
 
-### Analyzing the Bundle Size
+2. Click on the "TRY FOR FREE" button, this will navigate to Sign Up page, where the User is required to enter the following information: First Name > Last Name > Email > Country > Password. Select Sign Up For Free button
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+![My Remote Image](https://user-images.githubusercontent.com/87179594/184070989-e8b26d85-6e64-4ef3-b6d7-56449738236c.jpg)
 
-### Making a Progressive Web App
+3. After successfully sign up, user navigates to the main dashboad of VDOTOK where the user can find the ProjectID, and Api Key.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+![My Remote Image](https://user-images.githubusercontent.com/87179594/184071060-9909513b-f880-4de8-9481-6ab91ae2be95.jpg)
 
-### Advanced Configuration
+After successful registration, you can update the existing projectID with your own projectID, given in point no. 2 in the above attached screenshot
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+</br>
 
-### Deployment
+## Add PROJECT ID, and API URL.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
 
-### `npm run build` fails to minify
+### For messaging in chat application, You can update the projectID by following these steps.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- Go to the file ( react-one2one -> src -> constants -> index.js ).
+
+- Replace the **PROJECT_ID** constant with your project ID.
+
+
+### Base URL
+
+You have to update URL with your own apiBaseUrl. You can update **URL** by following these steps:
+
+- Go to the file, ( react-one2one -> src -> constants -> index.js ), replace the const **URL** with your BaseUrl
+
+
+</br>
+
+
+## Install npm packages
+
+Please refer to the above-stated npm and nvm version notes.
+
+- Run the following command to install all the dependencies:
+
+```shell
+  npm install
+```
+
+- Now run the following command to run the project
+
+```shell
+  npm start
+```
+
+- Your application is running at **http://localhost:3000**
+
+- Create **New Account** using Sign-up Form, and use the application
+
+</br>
+
+## How to Generate Build:
+
+Follow the command below to generate a “build”
+
+```shell
+  npm run build
+```
+
+
+</br>
+
+
+
+
+
+

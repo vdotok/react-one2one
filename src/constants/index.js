@@ -1,4 +1,9 @@
-export const BASE_URL = "https://q-tenant.vdotok.dev/API/v0/";
-//export const PROJECT_ID = "6NE92I";
-export const PROJECT_ID = "1RN1RP";
-// export const PROJECT_ID = "407IFV5M";
+
+const URL = "https://q-tenant.vdotok.dev";
+
+
+
+export const BASE_URL = URL + "/API/v0/";
+export const PROJECT_ID = "1RN1RP";    
+
+//"6NE92I", "407IFV5M"
