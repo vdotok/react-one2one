@@ -26,18 +26,20 @@ function CallContent() {
       callMessage,
       reconnectCall,
       callType,
+      isP2PCall,
     },
     dispatch: callDispatch,
   } = useContext(CallContext);
   const { vdotokClient } = useContext(VdotokClientContext);
   const [user] = useLocalStorage("user", {});
-  console.log("## cal res CallContent", {
+  console.log("**** ## cal res CallContent", {
     uuid,
     videoStream,
     video,
     audio,
     audioStream,
     receivedRes,
+    isP2PCall,
   });
   const [isActive, setIsActive] = useState(false);
   const [callTime, setCallTime] = useState(0);
@@ -88,6 +90,10 @@ function CallContent() {
     });
   };
   console.log("**** ", { selectedUser, getUser });
+
+
+
+
   const callHandler = () => {
     const params = {
       localVideo: document.getElementById("localVideo"),
@@ -97,15 +103,16 @@ function CallContent() {
       videoType: video ? "camera" : "audio",
       to: [selectedUser.ref_id],
       timeout: 40,
-      isPeer: 1,
+      isPeer: isP2PCall?1:0
+      //sPeer: 1,
     };
-
+    console.log("**** final call params\n\n", params);
+    // return;
     if (reconnectCall) {
       params.ref_id = user.ref_id;
       params.re_invite = 1;
       params.sessionUuid = uuid;
     }
-    console.log("## call params", { video });
     vdotokClient
       .Call(params)
       .then((res) => {
@@ -273,9 +280,6 @@ function CallContent() {
 
           <p className="username_text">{selectedUser.full_name}</p>
         </div>
-
-
-
 
         <div className="local_video_container">
           {showLocalAudioStreamIcon}

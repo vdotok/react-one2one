@@ -13,13 +13,15 @@ const SnackbarContextProvider = (props) => {
   const [type, setType] = useState("");
   const [isDisplayed, setIsDisplayed] = useState(false);
 
-  const displayHandler = (msg, type) => {
+  const displayHandler = (msg, type, clearTime = 3000) => {
     setMsg(msg);
     setType(type);
     setIsDisplayed(true);
     timer = setTimeout(() => {
-      closeHandler();
-    }, 3000); // close snackbar after 3 seconds
+      if (clearTime) {
+        closeHandler();
+      }
+    }, clearTime); // close snackbar after 3 seconds
   };
   const closeHandler = () => {
     clearTimeout(timer);

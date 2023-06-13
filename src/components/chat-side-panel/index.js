@@ -7,8 +7,10 @@ import SearchInput from "components/search-input";
 import UsersListContainer from "./users-list-container";
 import EmptyUserContainer from "./empty-user-container";
 import { ChatSearchContainer } from "./styles";
+import ToggleBox from "components/toggle";
 
 function ChatSidePanel() {
+  // RA = const [message, setMessage] = useState("Hello World");
   const [value, setValue] = useState("");
 
   const [user] = useLocalStorage("user", {});
@@ -20,6 +22,12 @@ function ChatSidePanel() {
   } = useContext(UserContext);
 
   console.log("## useData response", { loading, usersList, error });
+
+/////////////////////////////////////////
+  // RA const chooseMessage = (message) => {
+  //   setMessage(message);
+  // };
+/////////////////////////////////////////  
   useEffect(() => {
     const cancelToken = axios.CancelToken.source();
 
@@ -76,7 +84,20 @@ function ChatSidePanel() {
   return (
     <>
       <ChatSearchContainer>
-          <h4 className="chat_text">Chats    <span style={{float:'right'}}>{user.full_name}</span></h4>
+        <h4 className="chat_text">
+          Chats <span style={{ float: "right" }}>{user.full_name}</span>
+        </h4>
+        {/* <h4>my heading</h4> */}
+
+        {/* <h1>{message}</h1>
+        <ToggleBox chooseMessage={chooseMessage}/> */}
+
+
+
+
+
+
+        
         {usersList?.length ? (
           <SearchInput
             iconName="search"

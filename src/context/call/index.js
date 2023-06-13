@@ -1,4 +1,4 @@
-import React, {useState, createContext, useReducer, useRef} from "react";
+import React, { useState, createContext, useReducer, useRef } from "react";
 export const CallContext = createContext();
 
 const initialState = {
@@ -14,7 +14,8 @@ const initialState = {
   uuid: null,
   callMessage: "",
   reconnectCall: false,
-    isSocketDrop:false
+  isSocketDrop: false,
+  isP2PCall: false,
 };
 
 const reducer = (state, action) => {
@@ -63,10 +64,14 @@ const reducer = (state, action) => {
       return { ...state, chat: action.payload };
     case "CALL_MESSAGE":
       return { ...state, callMessage: action.payload };
-      case "SOCKET_DROP":
+    case "SOCKET_DROP":
       return { ...state, isSocketDrop: action.payload };
     case "RECONEECT_CALL_DATA":
       return { ...state, ...action.payload };
+    //
+    case "SET_P2P_CALL":
+      return { ...state, isP2PCall: action.payload };
+    //  
     default:
       return state;
   }

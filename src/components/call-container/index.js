@@ -7,10 +7,10 @@ const Container = styled.div`
   width: 100%;
 `;
 
-function CallContainer() {
+function CallContainer({isP2PCall}) {
   return (
     <Container>
-      <CallContent />
+      <CallContent isP2PCall={isP2PCall} />
     </Container>
   );
 }

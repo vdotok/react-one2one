@@ -1,21 +1,37 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import ImageStatus from "components/image-status";
 import GetIcon from "utils/getIcon";
 import { Container, UserInfo, Status, MoreOptionContainer } from "./styles";
 import { UserContext } from "context/user";
 import { CallContext } from "context/call";
+import ToggleBox from "components/toggle";
+import { Switch } from "antd";
+import SwitchButton from "components/switch-button/index";
 
 function ChatHeader(props) {
+  const [message, setMessage] = useState("Hello World");
+  const [toggle, setToggle] = useState(false);
+
   const { setShowAudioCallModal, setShowVideoCallModal } = props;
   const {
     state: { selectedUser },
   } = useContext(UserContext);
-  const { dispatch: callDispatch } = useContext(CallContext);
+  const {
+    state: { isP2PCall },
+    dispatch: callDispatch,
+  } = useContext(CallContext);
 
   const callHandler = (val) => {
     callDispatch({ type: "SET_VIDEO", payload: val });
   };
+  const chooseMessage = (message) => {
+    setMessage(message);
+  };
+  console.log("**** toggler:  \n\n", isP2PCall);
 
+  const toggler = () => {
+    callDispatch({ type: "SET_P2P_CALL", payload: !isP2PCall });
+  };
   return (
     <Container>
       <UserInfo>
@@ -27,6 +43,20 @@ function ChatHeader(props) {
         <p className="username">{selectedUser.full_name}</p>
         <Status status="away" />
       </UserInfo>
+
+      <div style={{ display: "flex", alignItems: "center", margin: "5px" }}>
+        <h4 style={{color:"#e1e9f1"}}>Media Server Call</h4>
+        <SwitchButton onClick={toggler}  />
+
+        {/* <Switch onClick={toggler} style={{ margin: "5px" }} /> */}
+        <h4 style={{color:"#e1e9f1"}}>P2P Call</h4>
+      </div>
+
+
+      {/* 
+      <h1>{message}</h1>
+      <ToggleBox chooseMessage={chooseMessage}/> */}
+
       <MoreOptionContainer>
         <GetIcon
           iconName="phone"

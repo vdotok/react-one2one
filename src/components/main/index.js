@@ -260,9 +260,10 @@ function Main(props) {
   }, [vdotokClient.projectId, presistCallData.uuid, isReload]);
 
   const initializeSDK = () => {
+    console.log("### initializeSDK called");
     if (window.parent) {
       window.addEventListener("message", (event) => {
-        console.log("Inside React", event);
+        console.log("### Inside React", event);
       });
       window.parent.postMessage("GetDOM", "*");
     }
@@ -273,19 +274,40 @@ function Main(props) {
       stunServer: user.stun_server_map
         ? user.stun_server_map.complete_address
         : "",
+      ignorePublicIP: true,
     });
+
+
+    console.log("### nat", {
+      projectId: PROJECT_ID,
+      host: `${user.media_server_map.complete_address}`,
+      //host: "wss://q-signalling.vdotok.dev:8443/call",
+      stunServer: user.stun_server_map
+        ? user.stun_server_map.complete_address
+        : "",
+      ignorePublicIP: true,  
+    })
+
+
+
     Client.on("connected", (res) => {
-      console.log("** vdotok SDK connected", { res });
+      console.log("### vdotok SDK connected\n\n", res);
       Client.Register(user.ref_id, user.authorization_token);
-      displayMsg("Connection in progress ...", "info");
+      displayMsg("Connection in progress ...", "info", false);
     });
+
+
+    
     Client.on("register", (res) => {
-      console.log("## register res", { res, uuid, presistCallData });
+      console.log("### register res", { res, uuid, presistCallData });
       setIsReload(true);
       callDispatch({ type: "SOCKET_DROP", payload: false });
 
       displayMsg("Socket connected", "success");
     });
+
+
+
     Client.on("call", (res) => {
       console.log("## Call res", { res });
       onCallResponseHandler(res);
@@ -297,7 +319,7 @@ function Main(props) {
   useEffect(() => {
     // initializeSDK();
     let Client = setTimeout(() => {
-      console.log("** in timeout", { user });
+      console.log("### in timeout", { user });
       initializeSDK();
     }, 1000);
 
