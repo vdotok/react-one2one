@@ -63,7 +63,7 @@ After successful registration, you can update the existing projectID with your o
 ## Add PROJECT ID, and API URL.
 
 
-### For messaging in chat application, You can update the projectID by following these steps.
+### You can update the projectID by following these steps.
 
 - Go to the file ( react-one2one -> src -> constants -> index.js ).
 
