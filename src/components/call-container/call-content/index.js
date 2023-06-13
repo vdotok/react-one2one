@@ -109,8 +109,8 @@ function CallContent() {
     console.log("**** final call params\n\n", params);
     // return;
     if (reconnectCall) {
-      params.ref_id = user.ref_id;
-      params.re_invite = 1;
+      params.refId = user.ref_id;
+      params.reInvite = 1;
       params.sessionUuid = uuid;
     }
     vdotokClient

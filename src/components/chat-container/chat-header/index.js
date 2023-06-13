@@ -4,8 +4,6 @@ import GetIcon from "utils/getIcon";
 import { Container, UserInfo, Status, MoreOptionContainer } from "./styles";
 import { UserContext } from "context/user";
 import { CallContext } from "context/call";
-import ToggleBox from "components/toggle";
-import { Switch } from "antd";
 import SwitchButton from "components/switch-button/index";
 
 function ChatHeader(props) {
@@ -53,7 +51,7 @@ function ChatHeader(props) {
       </div>
 
 
-      {/* 
+      {/*
       <h1>{message}</h1>
       <ToggleBox chooseMessage={chooseMessage}/> */}
 
