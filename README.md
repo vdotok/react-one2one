@@ -4,12 +4,12 @@ This is a demo project to demonstrate “One-to-One audio and video call” usin
 
 ## Live Demo
 
-Click <a href="https://d-react-one2one.vdotok.dev" title="Call Demo">here</a> to visit the live demo of VdoTok ReactJS One-to-One Audio/Video Call.
+Click <a href="https://react-one2one.vdotok.dev" title="Call Demo">here</a> to visit the live demo of VdoTok ReactJS One-to-One Audio/Video Call.
 
 ## Prerequisites:
 
-- Node v4.x.x or later
-- npm v3.x.x or later
+- Node v16.x.x or later
+- npm v7.x.x or later
 - git version any
 
 To verify the version of Node and npm, open **Terminal/Console** window and run `node -v` and `npm –v`. Older versions produce errors.
