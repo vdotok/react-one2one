@@ -1,5 +1,5 @@
 
-const URL = "https://q-tenant.vdotok.dev";
+const URL = "https://tenant.vdotok.com"//"https://q-tenant.vdotok.dev";
 
 
 
