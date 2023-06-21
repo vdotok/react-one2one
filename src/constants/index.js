@@ -1,9 +1,9 @@
 
-const URL = "https://q-tenant.vdotok.dev";
+const URL = "https://tenant.vdotok.com";
 
 
 
 export const BASE_URL = URL + "/API/v0/";
-export const PROJECT_ID = "1RN1RP";    
+export const PROJECT_ID = "1KMMRG";
 
 //"6NE92I", "407IFV5M"
