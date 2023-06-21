@@ -12,7 +12,7 @@ Click <a href="https://react-one2one.vdotok.dev" title="Call Demo">here</a> to v
 - npm v7.x.x or later
 - git version any
 
-To verify the version of Node and npm, open **Terminal/Console** window and run `node -v` and `npm –v`. Older versions produce errors.
+To verify the version of Node and npm, open **Terminal/Console** window and run `node -v` and `npm –v`. Old versions produce errors.
 
 Click <a href="https://docs.npmjs.com/downloading-and-installing-node-js-and-npm" target="_blank">here</a> to download and install the latest versions of Node and npm.
 
@@ -26,13 +26,13 @@ We recommend <a href="https://github.com/nvm-sh/nvm"> nvm </a> for managing mult
 
 ## Clone Repo
 
-- Clone this **Repository URL** into new project folder (e.g., my-proj).
+- Clone this **Repository URL** into new Project folder (e.g., my-proj).
 
 ```shell
     git clone https://github.com/vdotok/react-one2one
 ```
 
-- Move from you current directory i-e, **my-proj** to the **react-one2one** directory.
+- Move from your current directory i-e, **my-proj** to the **react-one2one** directory.
 
 ```shell
     cd react-one2one
@@ -42,7 +42,7 @@ We recommend <a href="https://github.com/nvm-sh/nvm"> nvm </a> for managing mult
 
 ## Sign up to get credentials i.e Project ID, and API URL.
 
-Register at <a href="https://vdotok.com">VdoTok</a> to get **API URL** and **Project ID**.
+Register at <a href="https://vdotok.com">VdoTok</a> to get **API URL** and **Project ID**, by following the below steps:
 
 1. Click on this link -> <a href="https://vdotok.com">https://vdotok.com</a> in your browser.
 
@@ -52,18 +52,20 @@ Register at <a href="https://vdotok.com">VdoTok</a> to get **API URL** and **Pro
 
 ![My Remote Image](https://user-images.githubusercontent.com/87179594/184070989-e8b26d85-6e64-4ef3-b6d7-56449738236c.jpg)
 
-3. After successfully sign up, user navigates to the main dashboad of VDOTOK where the user can find the ProjectID, and Api Key.
+3. After successfully signing up with VdoTok, the user navigates to the main Dashboad of VDOTOK where the user can find the ProjectID, and Api URL.
+
+4. The User can replace the existing ProjectID with their own ProjectID, as shown in the point # 2 in the below screen.
 
 ![My Remote Image](https://user-images.githubusercontent.com/87179594/184071060-9909513b-f880-4de8-9481-6ab91ae2be95.jpg)
 
-After successful registration, you can update the existing projectID with your own projectID, given in point no. 2 in the above attached screenshot
+
 
 </br>
 
 ## Add PROJECT ID, and API URL.
 
 
-### You can update the projectID by following these steps.
+### To integrate one-2-one call with JS Call SDK, the User can update the ProjectID by following these steps:
 
 - Go to the file ( react-one2one -> src -> constants -> index.js ).
 
@@ -72,7 +74,7 @@ After successful registration, you can update the existing projectID with your o
 
 ### Base URL
 
-You have to update URL with your own apiBaseUrl. You can update **URL** by following these steps:
+The user is required to update API-Base-URL with their own base URL. This can be done by following these steps:
 
 - Go to the file, ( react-one2one -> src -> constants -> index.js ), replace the const **URL** with your BaseUrl
 
@@ -104,7 +106,7 @@ Please refer to the above-stated npm and nvm version notes.
 
 ## How to Generate Build:
 
-Follow the command below to generate a “build”
+Run the below command to generate a “build”
 
 ```shell
   npm run build
