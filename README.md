@@ -46,7 +46,7 @@ Register at <a href="https://vdotok.com">VdoTok</a> to get **API URL** and **Pro
 
 1. Click on this link -> <a href="https://vdotok.com">https://vdotok.com</a> in your browser.
 
-<img width="1721" alt="SignupOnVdotok" src="https://github.com/vdotok/react-one2one/assets/134290022/5c6fc74f-7c32-4e2a-b6cf-ca5be6cb1a12">
+<img width="1721" alt="SignupVdotok" src="https://github.com/vdotok/react-one2one/assets/134290022/d3a4daca-1db0-4f60-aa08-a2676c070898">
 
 2. Click on the "TRY FOR FREE" button, this will navigate to Sign Up page, where the User is required to enter the following information: First Name > Last Name > Email > Country > Password. Select Sign Up For Free button
 
