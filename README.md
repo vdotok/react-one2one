@@ -76,7 +76,7 @@ Register at <a href="https://vdotok.com">VdoTok</a> to get **API URL** and **Pro
 
 The user is required to update API-Base-URL with their own base URL. This can be done by following these steps:
 
-- Go to the file, ( react-one2one -> src -> constants -> index.js ), replace the const **URL** with your BaseUrl
+- Go to the file, ( react-one2one -> src -> constants -> index.js ), replace the **BASE_URL** constant with your BaseUrl
 
 
 </br>
