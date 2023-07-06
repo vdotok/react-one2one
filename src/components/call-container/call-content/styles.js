@@ -22,7 +22,14 @@ export const Container = styled.div`
       background-color: ${({ theme }) => theme.gray_200_color};
       .local_video {
         display: ${(props) => (props.camera ? "block" : "none")};
-        /* background-color: gold; */
+
+
+        /* Added these below two lines to remove the mirror effect of user video in video call on both initiator and receiver side */
+        -webkit-transform: scaleX(-1);
+        transform: scaleX(-1);
+
+        
+        /* background-color: gold; */ 
       }
     }
     .call_time {
@@ -41,6 +48,13 @@ export const Container = styled.div`
       /* display: ${(props) => (props.callMessage ? "none" : "block")}; */
       .remote_video {
         display: ${(props) => (props.videoStream ? "block" : "none")};
+
+
+        /* Added these below two lines to remove the mirror effect of user video in video call on both initiator and receiver side */
+        -webkit-transform: scaleX(-1);
+        transform: scaleX(-1);
+
+        
         /* background-color: gold; */
         max-width: 75%;
         margin: auto;

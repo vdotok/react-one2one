@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect } from "react";
+import React, { useReducer, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "hooks/useLocalStorage";
 import { login } from "services/login";
@@ -36,6 +36,7 @@ const reducer = (state, action) => {
 function Signin() {
   const navigate = useNavigate();
   const [user, setUser] = useLocalStorage("user", {});
+  const [errorMessage, setErrorMessage] = useState("");
 
   const [state, dispatch] = useReducer(reducer, initialState);
   const { username_email, password } = state;
@@ -57,6 +58,7 @@ function Signin() {
         console.log({ res });
         if (res.status === 200) {
           setUser(res.data);
+          setErrorMessage("*Error: " + res.data.message);
         } else {
           console.log("something went wrong", { res });
         }
@@ -75,6 +77,9 @@ function Signin() {
         </ImageContainer> */}
         <SignupHeading>Sign in</SignupHeading>
         <SignupSubheading>Sign in to continue to Vdotok.</SignupSubheading>
+        <div style={{ position: "fixed" }}>
+          <p style={{ color: "red" }}>{errorMessage}</p>
+        </div>
         <FormContainer
           onSubmit={(event) => {
             event.preventDefault();
@@ -89,6 +94,7 @@ function Signin() {
               placeholder: "Enter Username/Email",
               value: username_email,
               onChange: (event) => {
+                setErrorMessage("");
                 dispatch({
                   type: "GET_USERNAME_EMAIL",
                   value: event.target.value,
@@ -107,6 +113,7 @@ function Signin() {
               value: password,
               autoComplete: "on",
               onChange: (event) => {
+                setErrorMessage("");
                 dispatch({ type: "GET_PASSWORD", value: event.target.value });
               },
             }}

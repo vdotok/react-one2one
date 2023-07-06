@@ -1,4 +1,4 @@
-import React, { useReducer, useEffect } from "react";
+import React, { useReducer, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLocalStorage } from "hooks/useLocalStorage";
 import { signup } from "services/signup";
@@ -40,6 +40,8 @@ function Signup() {
   const navigate = useNavigate();
   const [user, setUser] = useLocalStorage("user", {});
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [errorMessage, setErrorMessage] = useState("");
+
   const { username, email, password } = state;
 
   useEffect(() => {
@@ -61,6 +63,7 @@ function Signup() {
         console.log({ res });
         if (res.status === 200) {
           setUser(res.data);
+          setErrorMessage("*Error: " + res.data.message);
         } else {
           console.log("something went wrong", { res });
         }
@@ -78,6 +81,11 @@ function Signup() {
         </ImageContainer> */}
         <SignupHeading>Sign up</SignupHeading>
         <SignupSubheading>Get your Vdotok account now.</SignupSubheading>
+        
+        <div style={{ position: "fixed" }}>
+          <p style={{ color: "red" }}>{errorMessage}</p>
+        </div>
+
         <FormContainer onSubmit={SignupHandler}>
           <Input
             title="Username"
@@ -87,6 +95,7 @@ function Signup() {
               placeholder: "Enter Username",
               value: username,
               onChange: (event) => {
+                setErrorMessage("");
                 dispatch({ type: "GET_USERNAME", value: event.target.value });
               },
             }}
@@ -101,6 +110,7 @@ function Signup() {
               placeholder: "Enter Email",
               value: email,
               onChange: (event) => {
+                setErrorMessage("");
                 dispatch({ type: "GET_EMAIL", value: event.target.value });
               },
             }}
@@ -114,10 +124,12 @@ function Signup() {
               value: password,
               autoComplete: "on",
               onChange: (event) => {
+                setErrorMessage("");
                 dispatch({ type: "GET_PASSWORD", value: event.target.value });
               },
             }}
           />
+
           <Button
             margin="20px 0 0 0"
             buttonProps={{
