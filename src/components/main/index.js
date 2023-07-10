@@ -84,7 +84,7 @@ function Main(props) {
     });
   };
 
-  console.log("*** outside ", { callType });
+  console.log("## callStatus\n\n\n ", callType);
   const receiverHandler = (receiverRes) => {
     console.log("*** ", { callType: callTypeRef.current, receiverRes });
     if (callTypeRef.current) {
@@ -105,12 +105,13 @@ function Main(props) {
       receiverRes,
       usersListRef: usersListRef.current,
     });
-    if(!findUser)
-    {
-        alert("A new User calling you that not exist in the list.\nTry reloading this page and call again");
-        vdotokClientRef.current.EndCall();
-        window.location.reload();
-        return;
+    if (!findUser) {
+      alert(
+        "A new User calling you that not exist in the list.\nTry reloading this page and call again"
+      );
+      vdotokClientRef.current.EndCall();
+      window.location.reload();
+      return;
     }
     callDispatch({ type: "SET_RECEIVED_CALL", payload: true });
     callDispatch({ type: "GET_RECEIVED_RES", payload: receiverRes });
@@ -155,6 +156,7 @@ function Main(props) {
   };
 
   const endCallHandler = () => {
+    console.log("### in end call handler");
     callTypeRef.current = null;
     callDispatch({ type: "RESET_CALL_STATE" });
   };
@@ -181,8 +183,6 @@ function Main(props) {
   };
 
   const onCallResponseHandler = (response) => {
-    // //ABM
-    // console.log("ABM");
     if (response.uuid && rejectedCallsRef.current.includes(response.uuid)) {
       console.log(
         "not processing response of a rejected call, ",
@@ -230,6 +230,19 @@ function Main(props) {
         displayMsg("Connection closed", "error");
         return callDispatch({ type: "SOCKET_DROP", payload: true });
 
+      case "INSUFFICIENT_FUNDS":
+        console.log("### call state:\n\n\n", props, uuid);
+        displayMsg("Your balance is zero, please recharge", "error");
+        if (uuid) {
+          vdotokClientRef.current.EndCall();
+          //return endCallHandler();
+        }
+        return endCallHandler();
+
+        
+
+
+
       // case "PARTICIPANT_LEFT":
       //   return endCallHandler();
       default:
@@ -270,7 +283,7 @@ function Main(props) {
     console.log("### initializeSDK called");
     if (window.parent) {
       window.addEventListener("message", (event) => {
-        console.log("### Inside React", event);
+        // console.log("### Inside React", event);
       });
       window.parent.postMessage("GetDOM", "*");
     }
@@ -284,7 +297,6 @@ function Main(props) {
       ignorePublicIP: true,
     });
 
-
     console.log("### nat", {
       projectId: PROJECT_ID,
       host: `${user.media_server_map.complete_address}`,
@@ -292,10 +304,8 @@ function Main(props) {
       stunServer: user.stun_server_map
         ? user.stun_server_map.complete_address
         : "",
-      ignorePublicIP: true,  
-    })
-
-
+      ignorePublicIP: true,
+    });
 
     Client.on("connected", (res) => {
       console.log("### vdotok SDK connected\n\n", res);
@@ -303,8 +313,6 @@ function Main(props) {
       displayMsg("Connection in progress ...", "info", false);
     });
 
-
-    
     Client.on("register", (res) => {
       console.log("### register res", { res, uuid, presistCallData });
       setIsReload(true);
@@ -313,10 +321,8 @@ function Main(props) {
       displayMsg("Socket connected", "success");
     });
 
-
-
     Client.on("call", (res) => {
-      console.log("## Call res", { res });
+      console.log("### Call res:\n\n\n", res);
       onCallResponseHandler(res);
     });
     vdotokClientRef.current = Client;
