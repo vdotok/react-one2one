@@ -94,3 +94,13 @@ export function upperCase(str) {
   }
   return "";
 }
+
+export function convertToPCM16(data) {
+  const pcm16Data = new Int16Array(data.length);
+  for (let i = 0; i < data.length; i++) {
+    const sample = data[i];
+    const pcm16Sample = sample < 0 ? sample * 0x8000 : sample * 0x7fff;
+    pcm16Data[i] = pcm16Sample;
+  }
+  return pcm16Data;
+}

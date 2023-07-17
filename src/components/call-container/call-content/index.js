@@ -7,7 +7,7 @@ import { CallContext } from "context/call";
 import GetIcon from "utils/getIcon";
 import ImageStatus from "components/image-status";
 import { useLocalStorage } from "hooks/useLocalStorage";
-import AvatarModal from "components/avatar";
+import AvatarModal from "components/avatar-modal";
 import { Container, AvatarContainer } from "./styles";
 
 function CallContent() {
@@ -252,17 +252,17 @@ function CallContent() {
             ) : null}
             {showRemoteAudioStreamIcon}
           </div>
-          <AvatarContainer display={avatarStream}>
-            <AvatarModal
-              audioStream={audioStream}
-              avatarStream={avatarStream}
-            />
-          </AvatarContainer>
+          {/* <AvatarContainer avatarStream={true}>
+            <AvatarModal />
+          </AvatarContainer> */}
           {callType === "video" ? (
             <>
+              <AvatarContainer avatarStream={avatarStream}>
+                <AvatarModal />
+              </AvatarContainer>
               {/* {avatarStream ? (
                 <AvatarContainer display={avatarStream}>
-                  <AvatarModal audioStream={audioStream} />
+                  <AvatarModal />
                 </AvatarContainer>
               ) : null} */}
               <video
